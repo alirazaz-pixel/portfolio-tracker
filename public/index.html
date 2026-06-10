@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Tracker</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --border: #e2e6ea;
+  --text: #1a1d23;
+  --text2: #5a6272;
+  --text3: #9099a8;
+  --blue: #2563eb;
+  --blue-light: #eff4ff;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --amber: #d97706;
+  --amber-light: #fffbeb;
+  --purple: #7c3aed;
+  --purple-light: #f5f3ff;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2d3148;
+  --text: #e8eaf0;
+  --text2: #8892a4;
+  --text3: #555f72;
+  --blue-light: #1e2d5a;
+  --green-light: #0d2e1a;
+  --red-light: #2d1212;
+  --amber-light: #2d1f07;
+  --purple-light: #1e1540;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
+/* login removed */
+/* APP LAYOUT */
+#app { display: none; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-logo { font-size: 16px; font-weight: 700; color: var(--blue); letter-spacing: -0.3px; }
+.topbar-date { font-size: 12px; color: var(--text3); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.nav-tabs { display: flex; gap: 2px; }
+.nav-tab { padding: 6px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text2); border: none; background: none; transition: all 0.15s; }
+.nav-tab:hover { background: var(--surface2); color: var(--text); }
+.nav-tab.active { background: var(--blue-light); color: var(--blue); }
+.btn-icon { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.btn-icon:hover { background: var(--surface2); }
+.btn-primary { padding: 7px 16px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.btn-primary:hover { opacity: 0.9; }
+.toggle-theme { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text3); }
+.toggle-switch { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; cursor: pointer; transition: background 0.2s; }
+.toggle-switch.on { background: var(--blue); }
+.toggle-switch::after { content: ''; position: absolute; width: 14px; height: 14px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: left 0.2s; }
+.toggle-switch.on::after { left: 19px; }
+/* MAIN CONTENT */
+.main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+/* CARDS */
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.metric-card .lbl { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.metric-card .val { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.metric-card .sub { font-size: 11px; color: var(--text3); margin-top: 5px; }
+.metric-card.highlight { border-color: var(--blue); background: var(--blue-light); }
+.metric-card.highlight .lbl { color: var(--blue); }
+.metric-card.profit { border-color: var(--green); }
+.metric-card.loss { border-color: var(--red); }
+.up { color: var(--green) !important; }
+.dn { color: var(--red) !important; }
+.neutral { color: var(--text2) !important; }
+/* DAY CHANGE BANNER */
+.day-banner { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+/* TWO COL */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+/* FUND BARS */
+.fund-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.fund-row:last-child { border: none; }
+.fund-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.fund-name { font-size: 13px; flex: 0 0 80px; }
+.fund-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+.fund-bar { height: 100%; border-radius: 4px; }
+.fund-val { font-size: 12px; font-weight: 600; width: 90px; text-align: right; }
+.fund-pct { font-size: 11px; width: 36px; text-align: right; color: var(--text3); }
+/* DAILY TREND */
+.trend-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.trend-row:last-child { border: none; }
+.trend-date { width: 52px; color: var(--text3); font-size: 11px; }
+.trend-bar-wrap { flex: 1; background: var(--surface2); border-radius: 3px; height: 7px; overflow: hidden; }
+.trend-bar { height: 100%; border-radius: 3px; }
+.trend-val { width: 82px; text-align: right; font-weight: 600; font-size: 12px; }
+.trend-arrow { width: 20px; text-align: center; font-size: 14px; font-weight: 700; }
+/* RECORDS TABLE */
+.records-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-box { flex: 1; min-width: 200px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; background: var(--surface); }
+.search-box input { border: none; outline: none; background: transparent; font-size: 13px; color: var(--text); flex: 1; }
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); font-size: 12px; cursor: pointer; color: var(--text2); background: var(--surface); transition: all 0.15s; }
+.chip:hover { border-color: var(--blue); color: var(--blue); }
+.chip.active { background: var(--blue-light); border-color: var(--blue); color: var(--blue); font-weight: 500; }
+.date-picker { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; background: var(--surface); font-size: 12px; color: var(--text2); cursor: pointer; }
+.date-picker input[type="date"] { border: none; outline: none; background: transparent; font-size: 12px; color: var(--text); }
+/* TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; white-space: nowrap; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child td { border: none; }
+.badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-profit { background: var(--blue-light); color: var(--blue); }
+.badge-invest { background: var(--green-light); color: var(--green); }
+.badge-redeem { background: var(--red-light); color: var(--red); }
+.badge-transfer { background: var(--amber-light); color: var(--amber); }
+.action-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 4px 6px; border-radius: 6px; font-size: 15px; }
+.action-btn:hover { background: var(--surface2); color: var(--text); }
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; font-size: 12px; color: var(--text3); }
+.page-btns { display: flex; gap: 4px; }
+.page-btn { padding: 5px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 12px; cursor: pointer; color: var(--text2); background: var(--surface); }
+.page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+/* MODAL */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); padding: 28px; width: 600px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+.modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.modal .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 22px; }
+.tx-type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 20px; }
+.tx-type-btn { padding: 12px 8px; border: 1.5px solid var(--border); border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface); }
+.tx-type-btn:hover { border-color: var(--blue); }
+.tx-type-btn.active { border-color: var(--blue); background: var(--blue-light); }
+.tx-type-btn .ico { font-size: 20px; margin-bottom: 5px; }
+.tx-type-btn .lbl { font-size: 11px; font-weight: 600; color: var(--text); }
+.tx-type-btn .desc { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.form-group input, .form-group select, .form-group textarea { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 13px; }
+.form-group input:focus, .form-group select:focus { outline: 2px solid var(--blue); border-color: transparent; }
+.form-hint { font-size: 11px; color: var(--text3); }
+.calc-preview { background: var(--surface2); border-radius: var(--radius); padding: 12px 16px; margin: 16px 0; display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.calc-item .cl { font-size: 10px; color: var(--text3); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+.calc-item .cv { font-size: 15px; font-weight: 700; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.btn-cancel { padding: 9px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--text2); cursor: pointer; font-size: 13px; }
+.btn-save { padding: 9px 24px; background: var(--blue); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn-save:hover { opacity: 0.9; }
+.info-banner { background: var(--blue-light); color: var(--blue); border-radius: var(--radius); padding: 8px 12px; font-size: 12px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 8px; }
+.warn-banner { background: var(--amber-light); color: var(--amber); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
+/* CHART TABS */
+.chart-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.chart-tab { padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px; font-size: 12px; cursor: pointer; color: var(--text2); }
+.chart-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+/* SECTION TABS */
+.section { display: none; }
+.section.active { display: block; }
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+/* CONFIRM MODAL */
+.confirm-details { background: var(--surface2); border-radius: var(--radius); padding: 14px 16px; margin: 14px 0; }
+.confirm-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.confirm-row:last-child { border: none; font-weight: 600; }
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 9999; transform: translateY(80px); transition: transform 0.3s; opacity: 0; }
+.toast.show { transform: translateY(0); opacity: 1; }
+/* ANALYTICS */
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.month-table { width: 100%; }
+.month-table th { font-size: 11px; color: var(--text3); text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid var(--border); font-weight: 600; letter-spacing: 0.04em; }
+.month-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.month-table tr:last-child td { border: none; font-weight: 700; background: var(--surface2); }
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .metric-grid { grid-template-columns: repeat(2,1fr); }
+  .day-banner { grid-template-columns: 1fr 1fr; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .tx-type-grid { grid-template-columns: repeat(2,1fr); }
+  .main { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .nav-tabs { display: none; }
+}
+/* XIRR loading */
+.loading-dot { display: inline-block; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">📊 Portfolio Tracker</div>
+      <div class="topbar-date" id="topbar-date"></div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="showSection('records')">Records</button>
+      <button class="nav-tab" onclick="showSection('analytics')">Analytics</button>
+      <button class="nav-tab" onclick="showSection('search')">Search</button>
+    </div>
+    <div class="topbar-right">
+      <div class="toggle-theme">
+        <span>☀️</span>
+        <div class="toggle-switch" id="theme-toggle" onclick="toggleTheme()"></div>
+        <span>🌙</span>
+      </div>
+      <button class="btn-icon" onclick="showExportModal()">⬇ Export</button>
+      <button class="btn-primary" onclick="openEntryModal()">＋ New Entry</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="day-banner" id="day-banner"></div>
+      <div class="metric-grid" id="metric-grid"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Daily profit trend — last 14 days (net after CGT)</div>
+          <div id="daily-trend"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Fund allocation</div>
+          <div id="fund-allocation"></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Portfolio growth</div>
+          <div style="position:relative;height:220px"><canvas id="growth-chart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Redemption breakdown (FIFO)</div>
+          <div id="redemption-breakdown"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECORDS -->
+    <div id="section-records" class="section">
+      <div class="card">
+        <div class="records-header">
+          <div class="search-box">
+            🔍 <input type="text" id="records-search" placeholder="Search date, type, amount..." oninput="renderRecords()">
+          </div>
+          <div class="date-picker">
+            From: <input type="date" id="filter-from" onchange="renderRecords()">
+          </div>
+          <div class="date-picker">
+            To: <input type="date" id="filter-to" onchange="renderRecords()">
+          </div>
+          <button class="btn-icon" onclick="clearFilters()">✕ Clear</button>
+        </div>
+        <div class="filter-chips" id="type-chips" style="margin-bottom:14px"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>HBL Fund</th>
+                <th>UBL Fund</th>
+                <th>MCB Fund</th>
+                <th>UBL Bank</th>
+                <th>Cash</th>
+                <th>Total</th>
+                <th>Day Change</th>
+                <th>CGT</th>
+                <th>Cum. Capital</th>
+                <th>Cum. Profit</th>
+                <th>From Profit</th>
+                <th>From Capital</th>
+                <th>Notes</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="pagination-info"></span>
+          <div class="page-btns" id="page-btns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="section-analytics" class="section">
+      <div class="metric-grid" style="margin-bottom:20px" id="analytics-metrics"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Month-on-month summary</div>
+          <div class="table-wrap">
+            <table class="month-table" id="mom-table"></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            Monthly chart
+            <div class="chart-tabs" id="chart-tabs">
+              <div class="chart-tab active" onclick="switchMomChart('profit')">Profit</div>
+              <div class="chart-tab" onclick="switchMomChart('invested')">Invested</div>
+              <div class="chart-tab" onclick="switchMomChart('cgt')">CGT</div>
+            </div>
+          </div>
+          <div style="position:relative;height:240px"><canvas id="mom-chart"></canvas></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Per-fund CGT breakdown</div>
+          <div id="cgt-breakdown"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Returns</div>
+          <div id="returns-section"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="section-search" class="section">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Search & filter records</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+          <div class="form-group">
+            <label>From date</label>
+            <input type="date" id="search-from" oninput="renderSearch()">
+          </div>
+          <div class="form-group">
+            <label>To date</label>
+            <input type="date" id="search-to" oninput="renderSearch()">
+          </div>
+          <div class="form-group">
+            <label>Transaction type</label>
+            <select id="search-type" onchange="renderSearch()">
+              <option value="">All types</option>
+              <option>Profit Update</option>
+              <option>New Investment</option>
+              <option>Redemption</option>
+              <option>Transfer/Rebalance</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Keyword</label>
+          <input type="text" id="search-keyword" placeholder="Search any field..." oninput="renderSearch()">
+        </div>
+        <div id="search-summary" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th><th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>CGT</th><th>Cum. Capital</th><th>Cum. Profit</th>
+              </tr>
+            </thead>
+            <tbody id="search-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ENTRY MODAL -->
+<div class="modal-bg" id="entry-modal">
+  <div class="modal">
+    <h2 id="modal-title">Record a transaction</h2>
+    <p class="subtitle" id="modal-subtitle"></p>
+    <div class="tx-type-grid">
+      <div class="tx-type-btn active" onclick="selectTxType('Profit Update')" id="tx-Profit Update">
+        <div class="ico">📈</div><div class="lbl">Profit update</div><div class="desc">Enter today's values</div>
+      </div>
+      <div class="tx-type-btn" onclick="selectTxType('New Investment')" id="tx-New Investment">
+        <div class="ico">💰</div><div class="lbl">New investment</div><div class="desc">Add fresh capital</div>
+      </div>
+      <div class="tx-type-btn" onclick="selectTxType('Redemption')" id="tx-Redemption">
+        <div class="ico">💸</div><div class="lbl">Redemption</div><div class="desc">Withdraw from fund</div>
+      </div>
+      <div class="tx-type-btn" onclick="selectTxType('Transfer/Rebalance')" id="tx-Transfer/Rebalance">
+        <div class="ico">🔄</div><div class="lbl">Transfer / rebalance</div><div class="desc">Move between funds</div>
+      </div>
+    </div>
+    <div class="info-banner" id="entry-info-banner"></div>
+    <div class="form-grid" id="entry-form"></div>
+    <div class="calc-preview" id="calc-preview"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEntryModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEntry()">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM REDEMPTION MODAL -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal" style="width:420px">
+    <h2>Confirm redemption</h2>
+    <p class="subtitle">Review the FIFO breakdown before saving</p>
+    <div class="confirm-details" id="confirm-details"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfirmModal()">Back</button>
+      <button class="btn-save" onclick="confirmSaveEntry()">Confirm & save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-bg" id="delete-modal">
+  <div class="modal" style="width:400px">
+    <h2>Delete entry?</h2>
+    <p class="subtitle">This will remove the record and recalculate all subsequent entries.</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-save" style="background:var(--red)" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-bg" id="export-modal">
+  <div class="modal" style="width:380px">
+    <h2>Export data</h2>
+    <p class="subtitle">Download all records</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportExcel()">📊 &nbsp; Excel (.xlsx) — matches original format</button>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportPDF()">📄 &nbsp; PDF — summary report</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('export-modal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL (reuses entry modal logic) -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// FIREBASE CONFIG — user fills these in
+// ============================================================
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBeUdK57OsO1dNF9bf3WqM7iRvP3cvHOgk",
+  authDomain: "portfolio-tracker-app-8d440.firebaseapp.com",
+  projectId: "portfolio-tracker-app-8d440",
+  storageBucket: "portfolio-tracker-app-8d440.firebasestorage.app",
+  messagingSenderId: "516829652283",
+  appId: "1:516829652283:web:8fea774683e4c94ab8431e"
+};
+
+// ============================================================
+// IMPORTED DATA FROM EXCEL (51 rows)
+// ============================================================
+const IMPORTED_DATA = [{"id":"imported_2","date":"2026-01-01","entryType":"New Investment","hblFund":3555060.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":4948468.0,"change":4948468.0,"amountInOut":4948468.0,"fromProfit":0,"fromCapital":0,"cumCapital":4948468.0,"cumProfit":0.0,"profitTracking":false,"rowNum":2,"totalCGT":0.0,"netChange":4948468.0},{"id":"imported_3","date":"2026-01-08","entryType":"New Investment","hblFund":3603843.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":4997251.0,"change":4997251.0,"amountInOut":48783.0,"fromProfit":0,"fromCapital":0,"cumCapital":4997251.0,"cumProfit":0.0,"profitTracking":false,"rowNum":3,"totalCGT":0.0,"netChange":4997251.0},{"id":"imported_4","date":"2026-02-09","entryType":"New Investment","hblFund":4103843.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":5497251.0,"change":548783.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":5497251.0,"cumProfit":0.0,"profitTracking":false,"rowNum":4,"totalCGT":0.0,"netChange":548783.0},{"id":"imported_5","date":"2026-02-09","entryType":"New Investment","hblFund":4603843.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":5997251.0,"change":1000000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":5997251.0,"cumProfit":0.0,"profitTracking":false,"rowNum":5,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_6","date":"2026-02-16","entryType":"New Investment","hblFund":5103843.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6497251.0,"change":1000000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":6497251.0,"cumProfit":0.0,"profitTracking":false,"rowNum":6,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_7","date":"2026-02-16","entryType":"New Investment","hblFund":5225679.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6619087.0,"change":121836.0,"amountInOut":121836.0,"fromProfit":0,"fromCapital":0,"cumCapital":6619087.0,"cumProfit":0.0,"profitTracking":false,"rowNum":7,"totalCGT":0.0,"netChange":121836.0},{"id":"imported_8","date":"2026-02-18","entryType":"New Investment","hblFund":5227779.0,"ublFund":0.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6621187.0,"change":2100.0,"amountInOut":2100.0,"fromProfit":0,"fromCapital":0,"cumCapital":6621187.0,"cumProfit":0.0,"profitTracking":false,"rowNum":8,"totalCGT":0.0,"netChange":2100.0},{"id":"imported_9","date":"2026-02-23","entryType":"New Investment","hblFund":5227779.0,"ublFund":1000.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6622187.0,"change":1000.0,"amountInOut":1000.0,"fromProfit":0,"fromCapital":0,"cumCapital":6622187.0,"cumProfit":0.0,"profitTracking":false,"rowNum":9,"totalCGT":0.0,"netChange":1000.0},{"id":"imported_10","date":"2026-02-25","entryType":"Redemption","hblFund":5225676.0,"ublFund":1000.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6620084.0,"change":-2103.0,"amountInOut":-2103.0,"fromProfit":0.0,"fromCapital":2103.0,"cumCapital":6620084.0,"cumProfit":0.0,"profitTracking":false,"rowNum":10,"totalCGT":0.0,"netChange":-2103.0},{"id":"imported_11","date":"2026-02-26","entryType":"New Investment","hblFund":5225676.0,"ublFund":26000.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6645084.0,"change":25000.0,"amountInOut":25000.0,"fromProfit":0,"fromCapital":0,"cumCapital":6645084.0,"cumProfit":0.0,"profitTracking":false,"rowNum":11,"totalCGT":0.0,"netChange":25000.0},{"id":"imported_12","date":"2026-03-02","entryType":"New Investment","hblFund":5225676.0,"ublFund":126000.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6745084.0,"change":100000.0,"amountInOut":100000.0,"fromProfit":0,"fromCapital":0,"cumCapital":6745084.0,"cumProfit":0.0,"profitTracking":false,"rowNum":12,"totalCGT":0.0,"netChange":100000.0},{"id":"imported_13","date":"2026-04-02","entryType":"New Investment","hblFund":5225676.0,"ublFund":176000.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6795084.0,"change":50000.0,"amountInOut":50000.0,"fromProfit":0,"fromCapital":0,"cumCapital":6795084.0,"cumProfit":0.0,"profitTracking":false,"rowNum":13,"totalCGT":0.0,"netChange":50000.0},{"id":"imported_14","date":"2026-04-06","entryType":"New Investment","hblFund":5225676.0,"ublFund":332975.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":6952059.0,"change":156975.0,"amountInOut":156975.0,"fromProfit":0,"fromCapital":0,"cumCapital":6952059.0,"cumProfit":0.0,"profitTracking":false,"rowNum":14,"totalCGT":0.0,"netChange":156975.0},{"id":"imported_15","date":"2026-04-08","entryType":"New Investment","hblFund":5225676.0,"ublFund":458646.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":7077730.0,"change":125671.0,"amountInOut":125671.0,"fromProfit":0,"fromCapital":0,"cumCapital":7077730.0,"cumProfit":0.0,"profitTracking":false,"rowNum":15,"totalCGT":0.0,"netChange":125671.0},{"id":"imported_16","date":"2026-04-11","entryType":"New Investment","hblFund":5225676.0,"ublFund":486786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":7105870.0,"change":28140.0,"amountInOut":28140.0,"fromProfit":0,"fromCapital":0,"cumCapital":7105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":16,"totalCGT":0.0,"netChange":28140.0},{"id":"imported_17","date":"2026-04-14","entryType":"New Investment","hblFund":5225676.0,"ublFund":986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":7605870.0,"change":500000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":7605870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":17,"totalCGT":0.0,"netChange":500000.0},{"id":"imported_18","date":"2026-04-14","entryType":"New Investment","hblFund":5267215.0,"ublFund":986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":7647409.0,"change":41539.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":8105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":18,"totalCGT":0.0,"netChange":41539.0},{"id":"imported_19","date":"2026-04-15","entryType":"New Investment","hblFund":5267215.0,"ublFund":1986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":8647409.0,"change":1000000.0,"amountInOut":1000000.0,"fromProfit":0,"fromCapital":0,"cumCapital":9105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":19,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_20","date":"2026-04-15","entryType":"New Investment","hblFund":5267215.0,"ublFund":2986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":9647409.0,"change":1000000.0,"amountInOut":1000000.0,"fromProfit":0,"fromCapital":0,"cumCapital":10105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":20,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_21","date":"2026-04-16","entryType":"New Investment","hblFund":5267215.0,"ublFund":3986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":10647409.0,"change":1000000.0,"amountInOut":1000000.0,"fromProfit":0,"fromCapital":0,"cumCapital":11105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":21,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_22","date":"2026-04-16","entryType":"New Investment","hblFund":5267215.0,"ublFund":4986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":11647409.0,"change":1000000.0,"amountInOut":1000000.0,"fromProfit":0,"fromCapital":0,"cumCapital":12105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":22,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_23","date":"2026-04-16","entryType":"New Investment","hblFund":5267215.0,"ublFund":5986786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12647409.0,"change":1000000.0,"amountInOut":1000000.0,"fromProfit":0,"fromCapital":0,"cumCapital":13105870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":23,"totalCGT":0.0,"netChange":1000000.0},{"id":"imported_24","date":"2026-04-16","entryType":"New Investment","hblFund":5267215.0,"ublFund":6486786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":13147409.0,"change":500000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":13605870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":24,"totalCGT":0.0,"netChange":500000.0},{"id":"imported_25","date":"2026-04-22","entryType":"New Investment","hblFund":5267215.0,"ublFund":6536786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":13197409.0,"change":50000.0,"amountInOut":50000.0,"fromProfit":0,"fromCapital":0,"cumCapital":13655870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":25,"totalCGT":0.0,"netChange":50000.0},{"id":"imported_26","date":"2026-04-28","entryType":"Redemption","hblFund":3267215.0,"ublFund":6536786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":11197409.0,"change":-2000000.0,"amountInOut":-2000000.0,"fromProfit":0.0,"fromCapital":2000000.0,"cumCapital":11655870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":26,"totalCGT":0.0,"netChange":-2000000.0},{"id":"imported_27","date":"2026-04-30","entryType":"Redemption","hblFund":3267215.0,"ublFund":3536786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":8197409.0,"change":-3000000.0,"amountInOut":-3000000.0,"fromProfit":0.0,"fromCapital":3000000.0,"cumCapital":8655870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":27,"totalCGT":0.0,"netChange":-3000000.0},{"id":"imported_28","date":"2026-05-04","entryType":"New Investment","hblFund":3267215.0,"ublFund":5636786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":10297409.0,"change":2100000.0,"amountInOut":2100000.0,"fromProfit":0,"fromCapital":0,"cumCapital":10755870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":28,"totalCGT":0.0,"netChange":2100000.0},{"id":"imported_29","date":"2026-05-04","entryType":"New Investment","hblFund":3767215.0,"ublFund":6636786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":11797409.0,"change":1500000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":11255870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":29,"totalCGT":0.0,"netChange":1500000.0},{"id":"imported_30","date":"2026-05-04","entryType":"New Investment","hblFund":4267215.0,"ublFund":6636786.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12297409.0,"change":500000.0,"amountInOut":500000.0,"fromProfit":0,"fromCapital":0,"cumCapital":11755870.0,"cumProfit":0.0,"profitTracking":false,"rowNum":30,"totalCGT":0.0,"netChange":500000.0},{"id":"imported_31","date":"2026-05-12","entryType":"Profit Update","hblFund":4248098.0,"ublFund":6669286.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":4875.0,"mcbCGT":0.0,"total":12310792.0,"change":13383.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11755870.0,"cumProfit":554922.0,"profitTracking":false,"rowNum":31,"totalCGT":4875.0,"netChange":13383.0},{"id":"imported_32","date":"2026-05-14","entryType":"Profit Update","hblFund":4239365.0,"ublFund":6671481.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":329.25,"mcbCGT":0.0,"total":12304254.0,"change":-6538.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11755870.0,"cumProfit":548384.0,"profitTracking":true,"rowNum":32,"totalCGT":329.25,"netChange":-6867.25},{"id":"imported_33","date":"2026-05-15","entryType":"Profit Update","hblFund":4237267.0,"ublFund":6676779.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":794.7,"mcbCGT":0.0,"total":12307454.0,"change":3200.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11755870.0,"cumProfit":551584.0,"profitTracking":true,"rowNum":33,"totalCGT":794.7,"netChange":2405.3},{"id":"imported_34","date":"2026-05-18","entryType":"New Investment","hblFund":4237267.0,"ublFund":6689779.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12320454.0,"change":13000.0,"amountInOut":13000.0,"fromProfit":0,"fromCapital":0,"cumCapital":11768870.0,"cumProfit":551584.0,"profitTracking":true,"rowNum":34,"totalCGT":0.0,"netChange":13000.0},{"id":"imported_35","date":"2026-05-18","entryType":"Profit Update","hblFund":4237514.0,"ublFund":6676779.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":37.05,"ublCGT":0.0,"mcbCGT":0.0,"total":12307701.0,"change":-12753.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11768870.0,"cumProfit":538831.0,"profitTracking":true,"rowNum":35,"totalCGT":37.05,"netChange":-12790.05},{"id":"imported_36","date":"2026-05-18","entryType":"Profit Update","hblFund":4224731.0,"ublFund":6688646.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":1780.05,"mcbCGT":0.0,"total":12306785.0,"change":-916.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11768870.0,"cumProfit":537915.0,"profitTracking":true,"rowNum":36,"totalCGT":1780.05,"netChange":-2696.05},{"id":"imported_37","date":"2026-05-19","entryType":"New Investment","hblFund":4224731.0,"ublFund":6708294.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12326433.0,"change":19648.0,"amountInOut":19648.0,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":537915.0,"profitTracking":true,"rowNum":37,"totalCGT":0.0,"netChange":19648.0},{"id":"imported_38","date":"2026-05-19","entryType":"Profit Update","hblFund":4227985.0,"ublFund":6710796.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":488.1,"ublCGT":375.3,"mcbCGT":0.0,"total":12332189.0,"change":5756.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":543671.0,"profitTracking":true,"rowNum":38,"totalCGT":863.4,"netChange":4892.6},{"id":"imported_39","date":"2026-05-20","entryType":"Profit Update","hblFund":4235998.0,"ublFund":6714451.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":1201.95,"ublCGT":548.25,"mcbCGT":0.0,"total":12343857.0,"change":11668.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":555339.0,"profitTracking":true,"rowNum":39,"totalCGT":1750.2,"netChange":9917.8},{"id":"imported_40","date":"2026-05-21","entryType":"Profit Update","hblFund":4249912.0,"ublFund":6719499.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":2087.1,"ublCGT":757.2,"mcbCGT":0.0,"total":12362819.0,"change":18962.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":574301.0,"profitTracking":true,"rowNum":40,"totalCGT":2844.3,"netChange":16117.7},{"id":"imported_41","date":"2026-05-24","entryType":"Profit Update","hblFund":4246955.0,"ublFund":6724861.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":804.3,"mcbCGT":0.0,"total":12365224.0,"change":2405.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":576706.0,"profitTracking":true,"rowNum":41,"totalCGT":804.3,"netChange":1600.7},{"id":"imported_42","date":"2026-05-30","entryType":"Profit Update","hblFund":4273351.0,"ublFund":6743828.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":3959.4,"ublCGT":2845.05,"mcbCGT":0.0,"total":12410587.0,"change":45363.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11788518.0,"cumProfit":622069.0,"profitTracking":true,"rowNum":42,"totalCGT":6804.45,"netChange":38558.55},{"id":"imported_43","date":"2026-06-02","entryType":"New Investment","hblFund":4273351.0,"ublFund":6867931.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":888000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12534690.0,"change":124103.0,"amountInOut":124103.0,"fromProfit":0,"fromCapital":0,"cumCapital":11912621.0,"cumProfit":622069.0,"profitTracking":true,"rowNum":43,"totalCGT":0.0,"netChange":124103.0},{"id":"imported_44","date":"2026-06-03","entryType":"Transfer/Rebalance","hblFund":4273351.0,"ublFund":6887931.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":12534690.0,"change":0.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":11912621.0,"cumProfit":622069.0,"profitTracking":true,"rowNum":44,"totalCGT":0.0,"netChange":0.0},{"id":"imported_45","date":"2026-06-03","entryType":"New Investment","hblFund":4273351.0,"ublFund":7619409.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":13266168.0,"change":731478.0,"amountInOut":731478.0,"fromProfit":0,"fromCapital":0,"cumCapital":12644099.0,"cumProfit":622069.0,"profitTracking":true,"rowNum":45,"totalCGT":0.0,"netChange":731478.0},{"id":"imported_46","date":"2026-06-03","entryType":"Profit Update","hblFund":4266208.0,"ublFund":7620839.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":214.5,"mcbCGT":0.0,"total":13260455.0,"change":-5713.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":12644099.0,"cumProfit":616356.0,"profitTracking":true,"rowNum":46,"totalCGT":214.5,"netChange":-5927.5},{"id":"imported_47","date":"2026-06-04","entryType":"New Investment","hblFund":4266208.0,"ublFund":7625941.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":13265557.0,"change":5102.0,"amountInOut":5102.0,"fromProfit":0,"fromCapital":0,"cumCapital":12649201.0,"cumProfit":616356.0,"profitTracking":true,"rowNum":47,"totalCGT":0.0,"netChange":5102.0},{"id":"imported_48","date":"2026-06-04","entryType":"Profit Update","hblFund":4264392.0,"ublFund":7627535.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":239.1,"mcbCGT":0.0,"total":13265335.0,"change":-222.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":12649201.0,"cumProfit":616134.0,"profitTracking":true,"rowNum":48,"totalCGT":239.1,"netChange":-461.1},{"id":"imported_49","date":"2026-06-05","entryType":"Profit Update","hblFund":4270148.0,"ublFund":7630841.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":863.4,"ublCGT":495.9,"mcbCGT":0.0,"total":13274397.0,"change":9062.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":12649201.0,"cumProfit":625196.0,"profitTracking":true,"rowNum":49,"totalCGT":1359.3,"netChange":7702.7},{"id":"imported_50","date":"2026-06-08","entryType":"Profit Update","hblFund":4270552.0,"ublFund":7636680.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":60.6,"ublCGT":875.85,"mcbCGT":0.0,"total":13280640.0,"change":6243.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":12649201.0,"cumProfit":631439.0,"profitTracking":true,"rowNum":50,"totalCGT":936.45,"netChange":5306.55},{"id":"imported_51","date":"2026-06-08","entryType":"Redemption","hblFund":4220552.0,"ublFund":7636680.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":0.0,"mcbCGT":0.0,"total":13230640.0,"change":-50000.0,"amountInOut":-50000.0,"fromProfit":50000.0,"fromCapital":0.0,"cumCapital":12599201.0,"cumProfit":581439.0,"profitTracking":true,"rowNum":51,"totalCGT":0.0,"netChange":-50000.0},{"id":"imported_52","date":"2026-06-09","entryType":"Profit Update","hblFund":4218422.0,"ublFund":7637518.0,"mcbFund":5408.0,"ublBank":500000.0,"cash":868000.0,"hblCGT":0.0,"ublCGT":125.7,"mcbCGT":0.0,"total":13229348.0,"change":-1292.0,"amountInOut":null,"fromProfit":0,"fromCapital":0,"cumCapital":12599201.0,"cumProfit":630147.0,"profitTracking":true,"rowNum":52,"totalCGT":125.7,"netChange":-1417.7}];
+
+// ============================================================
+// GLOBALS
+// ============================================================
+let db, allRecords = [], currentPage = 1, pageSize = 20;
+let selectedTxType = 'Profit Update', editingId = null, deletingId = null;
+let pendingEntry = null, growthChart = null, momChart = null;
+let activeTypeFilter = '', momChartMode = 'profit';
+
+// ============================================================
+// HELPERS
+// ============================================================
+const fmt = n => {
+  if (n == null || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const s = Math.round(abs).toLocaleString('en-PK');
+  return (n < 0 ? '−' : '') + '₨' + s;
+};
+const fmtSigned = n => {
+  if (n == null || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const s = Math.round(abs).toLocaleString('en-PK');
+  const sign = n > 0 ? '+' : n < 0 ? '−' : '';
+  return sign + '₨' + s;
+};
+const fmtDate = d => {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+};
+const today = () => new Date().toISOString().slice(0,10);
+const colorClass = n => n > 0 ? 'up' : n < 0 ? 'dn' : 'neutral';
+const arrow = n => n > 0 ? '↑' : n < 0 ? '↓' : '→';
+const badgeClass = t => ({
+  'Profit Update':'badge-profit','New Investment':'badge-invest',
+  'Redemption':'badge-redeem','Transfer/Rebalance':'badge-transfer'
+}[t] || 'badge-profit');
+
+function showToast(msg, duration=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ============================================================
+// FIREBASE INIT + AUTH
+// ============================================================
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    initApp();
+  } catch(e) {
+    console.error('Firebase init failed, running in demo mode:', e);
+    allRecords = [...IMPORTED_DATA];
+    initApp();
+  }
+}
+
+// login removed
+
+// ============================================================
+// APP INIT + FIRESTORE SYNC
+// ============================================================
+async function initApp() {
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  loadTheme();
+  if (db) {
+    // Check if data already imported
+    const snap = await db.collection('records').limit(1).get();
+    if (snap.empty) {
+      await importHistoricalData();
+    }
+    db.collection('records').orderBy('date','asc').orderBy('rowNum','asc').onSnapshot(snap => {
+      allRecords = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      renderAll();
+    });
+  } else {
+    renderAll();
+  }
+}
+
+async function importHistoricalData() {
+  const batch = db.batch();
+  IMPORTED_DATA.forEach(r => {
+    const ref = db.collection('records').doc(r.id);
+    batch.set(ref, r);
+  });
+  await batch.commit();
+  showToast('✅ Historical data imported from Excel!');
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  const sorted = [...allRecords].sort((a,b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.rowNum||0) - (b.rowNum||0);
+  });
+  renderDashboard(sorted);
+  renderRecords();
+  renderAnalytics(sorted);
+  renderSearch();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard(sorted) {
+  if (!sorted.length) return;
+  const last = sorted[sorted.length - 1];
+
+  // Find yesterday's last profit update
+  const todayStr = last.date;
+  const profitDays = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking);
+  const todayUpdates = profitDays.filter(r => r.date === todayStr);
+  const prevDayUpdates = profitDays.filter(r => r.date < todayStr);
+  const todayNet = todayUpdates.reduce((s,r) => s + (r.netChange||0), 0);
+  const todayCGT = todayUpdates.reduce((s,r) => s + (r.totalCGT||0), 0);
+  const prevLast = prevDayUpdates[prevDayUpdates.length-1];
+  const prevNet = prevLast ? prevDayUpdates.filter(r=>r.date===prevLast.date).reduce((s,r)=>s+(r.netChange||0),0) : null;
+
+  // Banner
+  const diff = prevNet !== null ? todayNet - prevNet : null;
+  document.getElementById('day-banner').innerHTML = `
+    <div class="metric-card highlight">
+      <div class="lbl">Today's day change (net after CGT)</div>
+      <div class="val ${colorClass(todayNet)}">${arrow(todayNet)} ${fmt(Math.abs(todayNet))}</div>
+      <div class="sub">${diff !== null ? `vs yesterday: <span class="${colorClass(diff)}">${fmtSigned(diff)}</span> <strong>${diff>=0?'↑':'↓'}</strong>` : 'First entry'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="lbl">Yesterday's day change</div>
+      <div class="val ${colorClass(prevNet)}">${prevNet!==null?arrow(prevNet)+' '+fmt(Math.abs(prevNet)):'—'}</div>
+      <div class="sub">${prevLast ? fmtDate(prevLast.date) : 'No prior data'}</div>
+    </div>
+    <div class="metric-card">
+      <div class="lbl">CGT charged today</div>
+      <div class="val dn">${fmt(todayCGT)}</div>
+      <div class="sub">15% on gross gains</div>
+    </div>
+    <div class="metric-card">
+      <div class="lbl">Total CGT paid (all time)</div>
+      <div class="val dn">${fmt(sorted.reduce((s,r)=>s+(r.totalCGT||0),0))}</div>
+      <div class="sub">Since inception</div>
+    </div>`;
+
+  // Metrics
+  const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
+  const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
+  const totFromProfit = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
+  const totFromCapital = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromCapital||0),0);
+  const allProfitChanges = profitDays.map(r=>r.netChange||0);
+  const bestDay = Math.max(...allProfitChanges, 0);
+  const worstDay = Math.min(...allProfitChanges, 0);
+  const simpleReturn = last.cumCapital > 0 ? ((last.cumProfit / last.cumCapital) * 100).toFixed(2) : '0.00';
+
+  document.getElementById('metric-grid').innerHTML = `
+    <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div><div class="sub up">↑ All time</div></div>
+    <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(last.cumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
+    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(last.cumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT</div></div>
+    <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
+    <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${simpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>
+    <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
+    <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
+    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${fmt(worstDay)}</div></div>`;
+
+  // Daily trend
+  const trendDays = {};
+  profitDays.forEach(r => {
+    if (!trendDays[r.date]) trendDays[r.date] = {net:0, cgt:0};
+    trendDays[r.date].net += r.netChange||0;
+    trendDays[r.date].cgt += r.totalCGT||0;
+  });
+  const trendEntries = Object.entries(trendDays).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).reverse();
+  const maxAbs = Math.max(...trendEntries.map(([,v])=>Math.abs(v.net)), 1);
+  let trendHTML = '';
+  for (let i = 0; i < trendEntries.length; i++) {
+    const [date, v] = trendEntries[i];
+    const prev = i > 0 ? trendEntries[i-1][1].net : null;
+    const dir = prev === null ? '' : v.net >= prev ? '<span class="up">↑</span>' : '<span class="dn">↓</span>';
+    const pct = Math.round((Math.abs(v.net)/maxAbs)*100);
+    const color = v.net >= 0 ? '#16a34a' : '#dc2626';
+    trendHTML += `<div class="trend-row">
+      <div class="trend-date">${fmtDate(date).slice(0,6)}</div>
+      <div class="trend-bar-wrap"><div class="trend-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="trend-val ${colorClass(v.net)}">${fmtSigned(v.net)}</div>
+      <div class="trend-arrow">${dir}</div>
+    </div>`;
+  }
+  document.getElementById('daily-trend').innerHTML = trendHTML || '<div class="empty-state"><p>No profit updates yet</p></div>';
+
+  // Fund allocation
+  const total = last.total || 1;
+  const funds = [
+    {name:'HBL Fund', val:last.hblFund||0, color:'#2563eb'},
+    {name:'UBL Fund', val:last.ublFund||0, color:'#16a34a'},
+    {name:'MCB Fund', val:last.mcbFund||0, color:'#d97706'},
+    {name:'UBL Bank', val:last.ublBank||0, color:'#7c3aed'},
+    {name:'Cash', val:last.cash||0, color:'#64748b'},
+  ];
+  let allocHTML = funds.map(f => {
+    const pct = ((f.val/total)*100).toFixed(1);
+    return `<div class="fund-row">
+      <div class="fund-dot" style="background:${f.color}"></div>
+      <div class="fund-name">${f.name}</div>
+      <div class="fund-bar-wrap"><div class="fund-bar" style="width:${pct}%;background:${f.color}"></div></div>
+      <div class="fund-val">${fmt(f.val)}</div>
+      <div class="fund-pct" style="color:${f.color}">${pct}%</div>
+    </div>`;
+  }).join('') + `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Total</span><strong>${fmt(last.total)}</strong></div>`;
+  document.getElementById('fund-allocation').innerHTML = allocHTML;
+
+  // Redemption breakdown
+  document.getElementById('redemption-breakdown').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total redeemed</span><strong>${fmt(totRed)}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From profit (first)</span><span class="up" style="font-weight:600">${fmt(totFromProfit)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From capital (after)</span><span class="dn" style="font-weight:600">${fmt(totFromCapital)}</span></div>
+      <div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden;margin:4px 0">
+        <div style="width:${totRed>0?(totFromProfit/totRed*100).toFixed(1):0}%;height:100%;background:#16a34a;border-radius:6px"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">Green = profit portion. FIFO: profit exhausted first, then capital.</div>
+    </div>`;
+
+  // Growth chart
+  const growthLabels = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>fmtDate(r.date).slice(0,6));
+  const growthTotals = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.total);
+  const growthCapital = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.cumCapital);
+  if (growthChart) growthChart.destroy();
+  growthChart = new Chart(document.getElementById('growth-chart'), {
+    type:'line',
+    data:{
+      labels: growthLabels,
+      datasets:[
+        {label:'Net worth', data:growthTotals, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', fill:true, tension:0.3, pointRadius:2},
+        {label:'Capital', data:growthCapital, borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,0.05)', fill:true, tension:0.3, pointRadius:2, borderDash:[4,3]}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, labels:{font:{size:11}, boxWidth:12, padding:10}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+      scales:{
+        x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true},grid:{display:false}},
+        y:{ticks:{font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.1)'}}
+      }
+    }
+  });
+}
+
+// ============================================================
+// RECORDS
+// ============================================================
+function renderRecords() {
+  const search = (document.getElementById('records-search')?.value||'').toLowerCase();
+  const from = document.getElementById('filter-from')?.value||'';
+  const to = document.getElementById('filter-to')?.value||'';
+
+  // Type chips
+  const types = ['All','Profit Update','New Investment','Redemption','Transfer/Rebalance'];
+  document.getElementById('type-chips').innerHTML = types.map(t =>
+    `<div class="chip ${(activeTypeFilter===t||(t==='All'&&!activeTypeFilter))?'active':''}" onclick="setTypeFilter('${t}')">${t}</div>`
+  ).join('');
+
+  let filtered = [...allRecords].sort((a,b)=>{
+    if (b.date!==a.date) return b.date.localeCompare(a.date);
+    return (b.rowNum||0)-(a.rowNum||0);
+  });
+  if (activeTypeFilter) filtered = filtered.filter(r=>r.entryType===activeTypeFilter);
+  if (from) filtered = filtered.filter(r=>r.date>=from);
+  if (to) filtered = filtered.filter(r=>r.date<=to);
+  if (search) filtered = filtered.filter(r=>JSON.stringify(r).toLowerCase().includes(search));
+
+  const total = filtered.length;
+  const pages = Math.ceil(total/pageSize) || 1;
+  if (currentPage > pages) currentPage = 1;
+  const slice = filtered.slice((currentPage-1)*pageSize, currentPage*pageSize);
+
+  document.getElementById('pagination-info').textContent = `Showing ${Math.min((currentPage-1)*pageSize+1,total)}–${Math.min(currentPage*pageSize,total)} of ${total} entries`;
+
+  let pageHTML = '';
+  for (let p=1;p<=Math.min(pages,8);p++) {
+    pageHTML += `<div class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</div>`;
+  }
+  document.getElementById('page-btns').innerHTML = pageHTML;
+
+  document.getElementById('records-tbody').innerHTML = slice.map(r => `
+    <tr>
+      <td>${fmtDate(r.date)}</td>
+      <td><span class="badge ${badgeClass(r.entryType)}">${r.entryType}</span></td>
+      <td>${fmt(r.hblFund)}</td>
+      <td>${fmt(r.ublFund)}</td>
+      <td>${fmt(r.mcbFund)}</td>
+      <td>${fmt(r.ublBank)}</td>
+      <td>${fmt(r.cash)}</td>
+      <td><strong>${fmt(r.total)}</strong></td>
+      <td class="${colorClass(r.netChange)}">${fmtSigned(r.netChange)}</td>
+      <td class="dn">${r.totalCGT>0?fmt(r.totalCGT):'—'}</td>
+      <td>${fmt(r.cumCapital)}</td>
+      <td class="up">${fmt(r.cumProfit)}</td>
+      <td class="up">${r.fromProfit>0?fmt(r.fromProfit):'—'}</td>
+      <td class="dn">${r.fromCapital>0?fmt(r.fromCapital):'—'}</td>
+      <td style="color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openEditModal('${r.id}')" title="Edit">✏️</button>
+        <button class="action-btn" onclick="openDeleteModal('${r.id}')" title="Delete">🗑️</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="16" style="text-align:center;padding:40px;color:var(--text3)">No records found</td></tr>`;
+}
+
+function setTypeFilter(t) { activeTypeFilter = t==='All'?'':t; currentPage=1; renderRecords(); }
+function goPage(p) { currentPage=p; renderRecords(); }
+function clearFilters() {
+  document.getElementById('records-search').value='';
+  document.getElementById('filter-from').value='';
+  document.getElementById('filter-to').value='';
+  activeTypeFilter=''; currentPage=1; renderRecords();
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+function renderAnalytics(sorted) {
+  if (!sorted.length) return;
+  const last = sorted[sorted.length-1];
+
+  // Monthly aggregation
+  const months = {};
+  sorted.forEach(r => {
+    const m = r.date.slice(0,7);
+    if (!months[m]) months[m] = {invested:0, redeemed:0, profit:0, cgt:0, label:''};
+    const d = new Date(r.date+'T00:00:00');
+    months[m].label = d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    if (r.entryType==='New Investment') months[m].invested += r.amountInOut||0;
+    if (r.entryType==='Redemption') months[m].redeemed += Math.abs(r.change||0);
+    if (r.entryType==='Profit Update' && r.profitTracking) {
+      months[m].profit += r.netChange||0;
+      months[m].cgt += r.totalCGT||0;
+    }
+  });
+
+  const mKeys = Object.keys(months).sort();
+  const totals = {invested:0,redeemed:0,profit:0,cgt:0};
+  mKeys.forEach(k=>{totals.invested+=months[k].invested;totals.redeemed+=months[k].redeemed;totals.profit+=months[k].profit;totals.cgt+=months[k].cgt;});
+
+  // Table
+  let tableHTML = `<thead><tr><th>Month</th><th>Invested</th><th>Redeemed</th><th>Net Profit</th><th>CGT</th></tr></thead><tbody>`;
+  mKeys.forEach(k=>{
+    const m=months[k];
+    tableHTML+=`<tr>
+      <td>${m.label}</td>
+      <td class="up">${m.invested>0?fmt(m.invested):'—'}</td>
+      <td class="dn">${m.redeemed>0?fmt(m.redeemed):'—'}</td>
+      <td class="${colorClass(m.profit)}">${fmtSigned(m.profit)}</td>
+      <td class="dn">${m.cgt>0?fmt(m.cgt):'—'}</td>
+    </tr>`;
+  });
+  tableHTML+=`<tr><td>TOTAL</td><td class="up">${fmt(totals.invested)}</td><td class="dn">${fmt(totals.redeemed)}</td><td class="${colorClass(totals.profit)}">${fmtSigned(totals.profit)}</td><td class="dn">${fmt(totals.cgt)}</td></tr></tbody>`;
+  document.getElementById('mom-table').innerHTML = tableHTML;
+
+  // Metrics
+  const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
+  const simpleReturn = last.cumCapital > 0 ? ((last.cumProfit/last.cumCapital)*100).toFixed(2) : '0.00';
+  const xirr = calcXIRR(sorted);
+  document.getElementById('analytics-metrics').innerHTML = `
+    <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div></div>
+    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(last.cumProfit)}</div></div>
+    <div class="metric-card"><div class="lbl">Total CGT</div><div class="val dn">${fmt(totalCGT)}</div></div>
+    <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${simpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>`;
+
+  // CGT breakdown
+  const hblCGT = sorted.reduce((s,r)=>s+(r.hblCGT||0),0);
+  const ublCGT = sorted.reduce((s,r)=>s+(r.ublCGT||0),0);
+  const mcbCGT = sorted.reduce((s,r)=>s+(r.mcbCGT||0),0);
+  document.getElementById('cgt-breakdown').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[['HBL Fund',hblCGT,'#2563eb'],['UBL Fund',ublCGT,'#16a34a'],['MCB Fund',mcbCGT,'#d97706']].map(([n,v,c])=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0"></div>
+          <div style="flex:1;font-size:13px">${n}</div>
+          <div style="font-weight:600;font-size:13px;color:#dc2626">${fmt(v)}</div>
+        </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding-top:8px;font-size:14px;font-weight:700">
+        <span>Total CGT</span><span class="dn">${fmt(totalCGT)}</span>
+      </div>
+    </div>`;
+
+  // Returns section
+  document.getElementById('returns-section').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:var(--surface2);border-radius:${getComputedStyle(document.documentElement).getPropertyValue('--radius')};padding:14px 16px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Simple return</div>
+        <div style="font-size:28px;font-weight:700;color:#16a34a">${simpleReturn}%</div>
+        <div style="font-size:12px;color:var(--text3)">Total profit ÷ total capital invested</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">XIRR (annualised)</div>
+        <div style="font-size:28px;font-weight:700;color:#16a34a">${xirr !== null ? xirr.toFixed(2)+'%' : 'Calculating...'}</div>
+        <div style="font-size:12px;color:var(--text3)">Time-weighted, accounts for timing of cash flows</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">Capital = ${fmt(last.cumCapital)} &nbsp;|&nbsp; Profit = ${fmt(last.cumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)}</div>
+    </div>`;
+
+  // MoM chart
+  renderMomChart(months, mKeys);
+}
+
+function renderMomChart(months, mKeys) {
+  const labels = mKeys.map(k => months[k].label);
+  const data = mKeys.map(k => months[k][momChartMode] || 0);
+  const colors = {'profit':'#2563eb','invested':'#16a34a','cgt':'#dc2626'};
+  if (momChart) momChart.destroy();
+  momChart = new Chart(document.getElementById('mom-chart'), {
+    type:'bar',
+    data:{labels, datasets:[{label: momChartMode, data, backgroundColor: colors[momChartMode]+'cc', borderRadius:4}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+      scales:{
+        x:{ticks:{font:{size:10}}, grid:{display:false}},
+        y:{ticks:{font:{size:10},callback:v=>fmt(v)}, grid:{color:'rgba(128,128,128,0.1)'}}
+      }
+    }
+  });
+}
+
+function switchMomChart(mode) {
+  momChartMode = mode;
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
+  const sorted = [...allRecords].sort((a,b)=>a.date.localeCompare(b.date));
+  const months = {};
+  sorted.forEach(r => {
+    const m = r.date.slice(0,7);
+    if (!months[m]) months[m]={invested:0,redeemed:0,profit:0,cgt:0,label:''};
+    const d=new Date(r.date+'T00:00:00');
+    months[m].label=d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    if (r.entryType==='New Investment') months[m].invested+=r.amountInOut||0;
+    if (r.entryType==='Redemption') months[m].redeemed+=Math.abs(r.change||0);
+    if (r.entryType==='Profit Update'&&r.profitTracking){months[m].profit+=r.netChange||0;months[m].cgt+=r.totalCGT||0;}
+  });
+  renderMomChart(months, Object.keys(months).sort());
+}
+
+// ============================================================
+// SEARCH
+// ============================================================
+function renderSearch() {
+  const from = document.getElementById('search-from')?.value||'';
+  const to = document.getElementById('search-to')?.value||'';
+  const type = document.getElementById('search-type')?.value||'';
+  const kw = (document.getElementById('search-keyword')?.value||'').toLowerCase();
+  let filtered = [...allRecords].sort((a,b)=>b.date.localeCompare(a.date));
+  if (from) filtered = filtered.filter(r=>r.date>=from);
+  if (to) filtered = filtered.filter(r=>r.date<=to);
+  if (type) filtered = filtered.filter(r=>r.entryType===type);
+  if (kw) filtered = filtered.filter(r=>JSON.stringify(r).toLowerCase().includes(kw));
+  document.getElementById('search-summary').textContent = `${filtered.length} records found`;
+  document.getElementById('search-tbody').innerHTML = filtered.slice(0,50).map(r=>`
+    <tr>
+      <td>${fmtDate(r.date)}</td>
+      <td><span class="badge ${badgeClass(r.entryType)}">${r.entryType}</span></td>
+      <td>${fmt(r.hblFund)}</td><td>${fmt(r.ublFund)}</td><td>${fmt(r.mcbFund)}</td>
+      <td>${fmt(r.ublBank)}</td><td>${fmt(r.cash)}</td>
+      <td><strong>${fmt(r.total)}</strong></td>
+      <td class="${colorClass(r.netChange)}">${fmtSigned(r.netChange)}</td>
+      <td class="dn">${r.totalCGT>0?fmt(r.totalCGT):'—'}</td>
+      <td>${fmt(r.cumCapital)}</td><td class="up">${fmt(r.cumProfit)}</td>
+    </tr>`).join('')||`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text3)">No records match your filters</td></tr>`;
+}
+
+// ============================================================
+// ENTRY MODAL
+// ============================================================
+function openEntryModal(prefillId) {
+  editingId = prefillId || null;
+  const existing = editingId ? allRecords.find(r=>r.id===editingId) : null;
+  document.getElementById('modal-title').textContent = existing ? 'Edit entry' : 'Record a transaction';
+  document.getElementById('modal-subtitle').textContent = existing ? fmtDate(existing.date) : 'Select type, enter values — calculations are automatic';
+  if (existing) selectTxType(existing.entryType);
+  else selectTxType('Profit Update');
+  buildEntryForm(existing);
+  document.getElementById('entry-modal').classList.add('open');
+}
+function openEditModal(id) { openEntryModal(id); }
+function closeEntryModal() { document.getElementById('entry-modal').classList.remove('open'); editingId=null; }
+
+function selectTxType(type) {
+  selectedTxType = type;
+  document.querySelectorAll('.tx-type-btn').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('tx-'+type);
+  if (el) el.classList.add('active');
+  const infos = {
+    'Profit Update': '📈 Enter the current value of each fund. Net day change and CGT are calculated automatically.',
+    'New Investment': '💰 Enter the new fund values after adding capital. Amount added = new total minus previous total.',
+    'Redemption': '💸 Enter the new fund values after withdrawing. FIFO: profit is consumed first, then capital.',
+    'Transfer/Rebalance': '🔄 Moving money between funds — no profit or loss is recorded. Total portfolio stays the same.'
+  };
+  document.getElementById('entry-info-banner').textContent = infos[type];
+  buildEntryForm(editingId ? allRecords.find(r=>r.id===editingId) : null);
+}
+
+function getLastRecord() {
+  const sorted = [...allRecords].sort((a,b)=>{
+    if (a.date!==b.date) return a.date.localeCompare(b.date);
+    return (a.rowNum||0)-(b.rowNum||0);
+  });
+  return sorted[sorted.length-1] || null;
+}
+
+function buildEntryForm(existing) {
+  const last = getLastRecord();
+  const isEdit = !!existing;
+  const vals = existing || {};
+  const hint = f => last ? `prev: ${fmt(last[f]||0)}` : '';
+
+  const commonFields = `
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="f-date" value="${vals.date||today()}" max="${today()}">
+    </div>
+    <div class="form-group">
+      <label>HBL Fund (₨)</label>
+      <input type="number" id="f-hbl" value="${vals.hblFund||''}" placeholder="${hint('hblFund')}" oninput="updateCalcPreview()">
+    </div>
+    <div class="form-group">
+      <label>UBL Fund (₨)</label>
+      <input type="number" id="f-ubl" value="${vals.ublFund||''}" placeholder="${hint('ublFund')}" oninput="updateCalcPreview()">
+    </div>
+    <div class="form-group">
+      <label>MCB Fund (₨)</label>
+      <input type="number" id="f-mcb" value="${vals.mcbFund||''}" placeholder="${hint('mcbFund')}" oninput="updateCalcPreview()">
+    </div>
+    <div class="form-group">
+      <label>UBL Bank (₨)</label>
+      <input type="number" id="f-ublbank" value="${vals.ublBank||''}" placeholder="${hint('ublBank')}" oninput="updateCalcPreview()">
+    </div>
+    <div class="form-group">
+      <label>Cash (₨)</label>
+      <input type="number" id="f-cash" value="${vals.cash||''}" placeholder="${hint('cash')}" oninput="updateCalcPreview()">
+    </div>`;
+
+  const cgtFields = selectedTxType === 'Profit Update' ? `
+    <div class="form-group">
+      <label>HBL CGT (₨) <span style="color:var(--text3);font-size:11px">15% on HBL gain</span></label>
+      <input type="number" id="f-hblcgt" value="${vals.hblCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>UBL CGT (₨) <span style="color:var(--text3);font-size:11px">15% on UBL gain</span></label>
+      <input type="number" id="f-ublcgt" value="${vals.ublCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>MCB CGT (₨) <span style="color:var(--text3);font-size:11px">15% on MCB gain</span></label>
+      <input type="number" id="f-mcbcgt" value="${vals.mcbCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+    </div>` : `<input type="hidden" id="f-hblcgt" value="0"><input type="hidden" id="f-ublcgt" value="0"><input type="hidden" id="f-mcbcgt" value="0">`;
+
+  const notesField = `
+    <div class="form-group" style="grid-column:1/-1">
+      <label>Notes (optional)</label>
+      <input type="text" id="f-notes" value="${vals.notes||''}" placeholder="e.g. end of day update">
+    </div>`;
+
+  document.getElementById('entry-form').innerHTML = commonFields + cgtFields + notesField;
+  updateCalcPreview();
+}
+
+function getFormValues() {
+  const g = id => { const el=document.getElementById(id); return el?parseFloat(el.value)||0:0; };
+  const gs = id => { const el=document.getElementById(id); return el?el.value:''; };
+  return {
+    date: gs('f-date') || today(),
+    hblFund: g('f-hbl'), ublFund: g('f-ubl'), mcbFund: g('f-mcb'),
+    ublBank: g('f-ublbank'), cash: g('f-cash'),
+    hblCGT: g('f-hblcgt'), ublCGT: g('f-ublcgt'), mcbCGT: g('f-mcbcgt'),
+    notes: gs('f-notes')
+  };
+}
+
+function updateCalcPreview() {
+  const v = getFormValues();
+  const last = getLastRecord();
+  const newTotal = v.hblFund + v.ublFund + v.mcbFund + v.ublBank + v.cash;
+  const prevTotal = last ? last.total : 0;
+  const grossChange = newTotal - prevTotal;
+  const totalCGT = v.hblCGT + v.ublCGT + v.mcbCGT;
+  const netChange = selectedTxType === 'Profit Update' ? grossChange - totalCGT : grossChange;
+
+  let previewHTML = `
+    <div class="calc-item"><div class="cl">New total</div><div class="cv">${fmt(newTotal)}</div></div>
+    <div class="calc-item"><div class="cl">Gross change</div><div class="cv ${colorClass(grossChange)}">${fmtSigned(grossChange)}</div></div>`;
+
+  if (selectedTxType === 'Profit Update') {
+    previewHTML += `
+      <div class="calc-item"><div class="cl">CGT deducted</div><div class="cv dn">${fmt(totalCGT)}</div></div>
+      <div class="calc-item"><div class="cl">Net change</div><div class="cv ${colorClass(netChange)}">${fmtSigned(netChange)}</div></div>`;
+  } else if (selectedTxType === 'Redemption' && last) {
+    const redeemAmt = Math.abs(grossChange);
+    const avProfit = last.cumProfit || 0;
+    const fromP = Math.min(redeemAmt, avProfit);
+    const fromC = redeemAmt - fromP;
+    previewHTML += `
+      <div class="calc-item"><div class="cl">From profit</div><div class="cv up">${fmt(fromP)}</div></div>
+      <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fmt(fromC)}</div></div>`;
+  }
+  document.getElementById('calc-preview').innerHTML = previewHTML;
+}
+
+async function saveEntry() {
+  const v = getFormValues();
+  const last = getLastRecord();
+  const newTotal = v.hblFund + v.ublFund + v.mcbFund + v.ublBank + v.cash;
+  const prevTotal = last && !editingId ? last.total : (editingId ? (allRecords.find(r=>r.id===editingId)||{total:0}).total : 0);
+  const grossChange = newTotal - (last && !editingId ? last.total : 0);
+  const totalCGT = Math.round((v.hblCGT + v.ublCGT + v.mcbCGT) * 100) / 100;
+  const profitTracking = (v.date >= '2026-05-14');
+
+  // FIFO redemption calc
+  let fromProfit = 0, fromCapital = 0;
+  if (selectedTxType === 'Redemption' && last) {
+    const redeemAmt = Math.abs(grossChange);
+    const avProfit = last.cumProfit || 0;
+    fromProfit = Math.min(redeemAmt, avProfit);
+    fromCapital = redeemAmt - fromProfit;
+  }
+
+  // Cumulative calcs
+  let cumCapital = last ? last.cumCapital : 0;
+  let cumProfit = last ? last.cumProfit : 0;
+  if (selectedTxType === 'New Investment') cumCapital += (v.amountInOut || grossChange);
+  if (selectedTxType === 'Redemption') {
+    cumProfit -= fromProfit;
+    cumCapital -= fromCapital;
+  }
+  if (selectedTxType === 'Profit Update' && profitTracking) {
+    const netChange = grossChange - totalCGT;
+    cumProfit += netChange;
+  }
+
+  const entry = {
+    date: v.date,
+    entryType: selectedTxType,
+    hblFund: v.hblFund, ublFund: v.ublFund, mcbFund: v.mcbFund,
+    ublBank: v.ublBank, cash: v.cash,
+    hblCGT: v.hblCGT, ublCGT: v.ublCGT, mcbCGT: v.mcbCGT,
+    totalCGT, total: newTotal,
+    change: grossChange,
+    netChange: selectedTxType==='Profit Update' ? Math.round((grossChange-totalCGT)*100)/100 : grossChange,
+    amountInOut: selectedTxType !== 'Profit Update' ? grossChange : null,
+    fromProfit, fromCapital,
+    cumCapital: Math.round(cumCapital), cumProfit: Math.round(cumProfit),
+    profitTracking,
+    notes: v.notes,
+    rowNum: Date.now()
+  };
+
+  if (selectedTxType === 'Redemption') {
+    pendingEntry = entry;
+    showConfirmModal(entry, fromProfit, fromCapital, last?.cumProfit||0);
+    return;
+  }
+
+  await commitEntry(entry);
+}
+
+function showConfirmModal(entry, fromP, fromC, prevProfit) {
+  document.getElementById('confirm-details').innerHTML = `
+    <div class="confirm-row"><span>Redemption amount</span><span class="dn">${fmt(Math.abs(entry.change))}</span></div>
+    <div class="confirm-row"><span>Available profit pool</span><span class="up">${fmt(prevProfit)}</span></div>
+    <div class="confirm-row"><span>Taken from profit (first)</span><span class="up">${fmt(fromP)}</span></div>
+    <div class="confirm-row"><span>Taken from capital (after)</span><span class="dn">${fmt(fromC)}</span></div>
+    <div class="confirm-row"><span>Remaining profit pool</span><span>${fmt(prevProfit - fromP)}</span></div>`;
+  closeEntryModal();
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeConfirmModal() { document.getElementById('confirm-modal').classList.remove('open'); openEntryModal(); }
+async function confirmSaveEntry() {
+  document.getElementById('confirm-modal').classList.remove('open');
+  await commitEntry(pendingEntry);
+  pendingEntry = null;
+}
+
+async function commitEntry(entry) {
+  try {
+    if (db) {
+      if (editingId) {
+        await db.collection('records').doc(editingId).update(entry);
+        showToast('✅ Entry updated');
+      } else {
+        await db.collection('records').add(entry);
+        showToast('✅ Entry saved');
+      }
+    } else {
+      if (editingId) {
+        const idx = allRecords.findIndex(r=>r.id===editingId);
+        if (idx>=0) allRecords[idx] = {...entry, id:editingId};
+      } else {
+        allRecords.push({...entry, id:'local_'+Date.now()});
+      }
+      renderAll();
+      showToast('✅ Entry saved (demo mode)');
+    }
+    closeEntryModal();
+  } catch(e) {
+    showToast('❌ Error saving: '+e.message);
+  }
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function openDeleteModal(id) { deletingId=id; document.getElementById('delete-modal').classList.add('open'); }
+function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('open'); deletingId=null; }
+async function confirmDelete() {
+  try {
+    if (db) { await db.collection('records').doc(deletingId).delete(); showToast('🗑️ Entry deleted'); }
+    else { allRecords = allRecords.filter(r=>r.id!==deletingId); renderAll(); showToast('🗑️ Entry deleted (demo)'); }
+    closeDeleteModal();
+  } catch(e) { showToast('❌ Error: '+e.message); }
+}
+
+// ============================================================
+// XIRR
+// ============================================================
+function calcXIRR(sorted) {
+  try {
+    const cashflows = [];
+    sorted.forEach(r => {
+      const d = new Date(r.date+'T00:00:00');
+      if (r.entryType==='New Investment' && r.amountInOut) cashflows.push({d, v:-Math.abs(r.amountInOut)});
+      if (r.entryType==='Redemption') cashflows.push({d, v:Math.abs(r.change)});
+    });
+    if (!cashflows.length) return null;
+    const last = sorted[sorted.length-1];
+    cashflows.push({d:new Date(), v:last.total});
+    let rate = 0.1;
+    for (let iter=0;iter<200;iter++) {
+      let npv=0, dnpv=0;
+      const d0 = cashflows[0].d;
+      cashflows.forEach(cf => {
+        const t = (cf.d - d0) / (365.25*24*3600*1000);
+        const disc = Math.pow(1+rate, t);
+        npv += cf.v / disc;
+        dnpv -= t * cf.v / (disc * (1+rate));
+      });
+      if (Math.abs(dnpv) < 1e-10) break;
+      const newRate = rate - npv/dnpv;
+      if (Math.abs(newRate-rate) < 1e-8) { rate=newRate; break; }
+      rate = newRate;
+    }
+    return isFinite(rate) ? rate*100 : null;
+  } catch(e) { return null; }
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function showExportModal() { document.getElementById('export-modal').classList.add('open'); }
+
+function exportExcel() {
+  const sorted = [...allRecords].sort((a,b)=>a.date<b.date?-1:1);
+  const ws_data = [['Date','HBL Fund','UBL Fund','MCB Fund','UBL Bank','Cash','HBL CGT','UBL CGT','MCB CGT','Total','Change','Entry Type','Amount In/Out','From Profit','From Capital','Cum. Capital','Cum. Profit','Notes']];
+  sorted.forEach(r => ws_data.push([
+    r.date, r.hblFund, r.ublFund, r.mcbFund, r.ublBank, r.cash,
+    r.hblCGT, r.ublCGT, r.mcbCGT, r.total, r.change,
+    r.entryType, r.amountInOut, r.fromProfit, r.fromCapital,
+    r.cumCapital, r.cumProfit, r.notes||''
+  ]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = Array(18).fill({wch:14});
+  XLSX.utils.book_append_sheet(wb, ws, 'Portfolio Tracking');
+  XLSX.writeFile(wb, `Portfolio_${today()}.xlsx`);
+  showToast('📊 Excel exported!');
+  document.getElementById('export-modal').classList.remove('open');
+}
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const last = allRecords.sort((a,b)=>a.date<b.date?-1:1).slice(-1)[0] || {};
+  doc.setFontSize(18); doc.text('Portfolio Tracker — Summary Report', 14, 18);
+  doc.setFontSize(11); doc.setTextColor(100);
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 26);
+  doc.setTextColor(0);
+  const rows = [
+    ['Net Worth', fmt(last.total)],
+    ['Capital Invested', fmt(last.cumCapital)],
+    ['Cumulative Profit (net)', fmt(last.cumProfit)],
+    ['Total CGT Paid', fmt(allRecords.reduce((s,r)=>s+(r.totalCGT||0),0))],
+    ['Total Redeemed', fmt(allRecords.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0))],
+    ['Simple Return', ((last.cumProfit||0)/(last.cumCapital||1)*100).toFixed(2)+'%'],
+  ];
+  let y = 40;
+  rows.forEach(([k,v]) => {
+    doc.setFontSize(11); doc.setTextColor(100); doc.text(k, 14, y);
+    doc.setTextColor(0); doc.text(v, 120, y); y += 10;
+  });
+  doc.save(`Portfolio_Report_${today()}.pdf`);
+  showToast('📄 PDF exported!');
+  document.getElementById('export-modal').classList.remove('open');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  event.target.classList.add('active');
+  if (name==='analytics') {
+    const sorted = [...allRecords].sort((a,b)=>a.date.localeCompare(b.date));
+    renderAnalytics(sorted);
+  }
+}
+
+// ============================================================
+// THEME
+// ============================================================
+function loadTheme() {
+  const saved = localStorage.getItem('pt-theme') || 'light';
+  if (saved==='dark') { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('theme-toggle').classList.add('on'); }
+}
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', isDark?'light':'dark');
+  document.getElementById('theme-toggle').classList.toggle('on', !isDark);
+  localStorage.setItem('pt-theme', isDark?'light':'dark');
+  renderAll();
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.onload = initFirebase;
+</script>
+</body>
+</html>
