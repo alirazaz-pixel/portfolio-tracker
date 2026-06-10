@@ -1181,44 +1181,57 @@ function buildEntryForm(existing) {
   const vals = existing || {};
   const hint = f => last ? `prev: ${fmt(last[f]||0)}` : '';
 
+  // Previous values for hints and autocomplete
+  const prevHBL = last ? Math.round(last.hblFund||0) : 0;
+  const prevUBL = last ? Math.round(last.ublFund||0) : 0;
+  const prevMCB = last ? Math.round(last.mcbFund||0) : 0;
+  const prevUBLBank = last ? Math.round(last.ublBank||0) : 0;
+  const prevCash = last ? Math.round(last.cash||0) : 0;
+
+  const fundField = (id, label, val, prev, color) => `
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center">
+        <span>${label} (₨)</span>
+        ${prev ? `<span style="font-size:11px;color:var(--text3)">prev: <span style="font-weight:600;color:var(--text2)">${prev.toLocaleString('en-PK')}</span>
+          <button type="button" onclick="document.getElementById('${id}').value=${prev};updateCalcPreview()" 
+            style="margin-left:6px;font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);cursor:pointer;color:var(--text2)">
+            Use prev
+          </button>
+        </span>` : ''}
+      </label>
+      <div style="position:relative">
+        <input type="number" id="${id}" value="${val||''}" placeholder="${prev ? prev.toLocaleString('en-PK') : '0'}" 
+          oninput="updateCalcPreview()" 
+          style="width:100%;padding-right:${prev?'80px':'12px'}">
+        ${prev && selectedTxType==='Profit Update' ? `
+          <div id="${id}-diff" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;pointer-events:none"></div>
+        ` : ''}
+      </div>
+    </div>`;
+
   const commonFields = `
     <div class="form-group">
       <label>Date</label>
       <input type="date" id="f-date" value="${vals.date||today()}" max="${today()}">
     </div>
-    <div class="form-group">
-      <label>HBL Fund (₨)</label>
-      <input type="number" id="f-hbl" value="${vals.hblFund||''}" placeholder="${hint('hblFund')}" oninput="updateCalcPreview()">
-    </div>
-    <div class="form-group">
-      <label>UBL Fund (₨)</label>
-      <input type="number" id="f-ubl" value="${vals.ublFund||''}" placeholder="${hint('ublFund')}" oninput="updateCalcPreview()">
-    </div>
-    <div class="form-group">
-      <label>MCB Fund (₨)</label>
-      <input type="number" id="f-mcb" value="${vals.mcbFund||''}" placeholder="${hint('mcbFund')}" oninput="updateCalcPreview()">
-    </div>
-    <div class="form-group">
-      <label>UBL Bank (₨)</label>
-      <input type="number" id="f-ublbank" value="${vals.ublBank||''}" placeholder="${hint('ublBank')}" oninput="updateCalcPreview()">
-    </div>
-    <div class="form-group">
-      <label>Cash (₨)</label>
-      <input type="number" id="f-cash" value="${vals.cash||''}" placeholder="${hint('cash')}" oninput="updateCalcPreview()">
-    </div>`;
+    ${fundField('f-hbl','HBL Fund', vals.hblFund, prevHBL)}
+    ${fundField('f-ubl','UBL Fund', vals.ublFund, prevUBL)}
+    ${fundField('f-mcb','MCB Fund', vals.mcbFund, prevMCB)}
+    ${fundField('f-ublbank','UBL Bank', vals.ublBank, prevUBLBank)}
+    ${fundField('f-cash','Cash', vals.cash, prevCash)}`;
 
   const cgtFields = selectedTxType === 'Profit Update' ? `
     <div class="form-group">
-      <label>HBL CGT (₨) <span style="color:var(--text3);font-size:11px">15% on HBL gain</span></label>
-      <input type="number" id="f-hblcgt" value="${vals.hblCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+      <label>HBL CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <input type="number" id="f-hblcgt" value="${vals.hblCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>UBL CGT (₨) <span style="color:var(--text3);font-size:11px">15% on UBL gain</span></label>
-      <input type="number" id="f-ublcgt" value="${vals.ublCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+      <label>UBL CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <input type="number" id="f-ublcgt" value="${vals.ublCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>MCB CGT (₨) <span style="color:var(--text3);font-size:11px">15% on MCB gain</span></label>
-      <input type="number" id="f-mcbcgt" value="${vals.mcbCGT||''}" placeholder="0" oninput="updateCalcPreview()" step="0.01">
+      <label>MCB CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <input type="number" id="f-mcbcgt" value="${vals.mcbCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>` : `<input type="hidden" id="f-hblcgt" value="0"><input type="hidden" id="f-ublcgt" value="0"><input type="hidden" id="f-mcbcgt" value="0">`;
 
   const notesField = `
@@ -1249,7 +1262,43 @@ function updateCalcPreview() {
   const newTotal = v.hblFund + v.ublFund + v.mcbFund + v.ublBank + v.cash;
   const prevTotal = last ? last.total : 0;
   const grossChange = newTotal - prevTotal;
-  const totalCGT = v.hblCGT + v.ublCGT + v.mcbCGT;
+
+  // Update diff indicators next to each fund field
+  if (selectedTxType === 'Profit Update' && last) {
+    const diffs = [
+      ['f-hbl', v.hblFund, last.hblFund||0],
+      ['f-ubl', v.ublFund, last.ublFund||0],
+      ['f-mcb', v.mcbFund, last.mcbFund||0],
+    ];
+    diffs.forEach(([id, cur, prev]) => {
+      const el = document.getElementById(id+'-diff');
+      if (!el || !cur) { if(el) el.textContent=''; return; }
+      const d = cur - prev;
+      el.textContent = d > 0 ? '+'+d.toLocaleString('en-PK') : d < 0 ? '('+Math.abs(d).toLocaleString('en-PK')+')' : '—';
+      el.style.color = d > 0 ? '#16a34a' : d < 0 ? '#dc2626' : 'var(--text3)';
+    });
+  }
+
+  // Auto-calculate CGT per fund (15% on gain only, no CGT on loss)
+  if (selectedTxType === 'Profit Update' && last) {
+    const hblGain = Math.max(0, v.hblFund - (last.hblFund||0));
+    const ublGain = Math.max(0, v.ublFund - (last.ublFund||0));
+    const mcbGain = Math.max(0, v.mcbFund - (last.mcbFund||0));
+    const autoCGT_hbl = Math.round(hblGain * 0.15 * 100) / 100;
+    const autoCGT_ubl = Math.round(ublGain * 0.15 * 100) / 100;
+    const autoCGT_mcb = Math.round(mcbGain * 0.15 * 100) / 100;
+    // Auto-fill CGT fields
+    const hblCGTEl = document.getElementById('f-hblcgt');
+    const ublCGTEl = document.getElementById('f-ublcgt');
+    const mcbCGTEl = document.getElementById('f-mcbcgt');
+    if (hblCGTEl && hblCGTEl.type !== 'hidden') hblCGTEl.value = autoCGT_hbl || '';
+    if (ublCGTEl && ublCGTEl.type !== 'hidden') ublCGTEl.value = autoCGT_ubl || '';
+    if (mcbCGTEl && mcbCGTEl.type !== 'hidden') mcbCGTEl.value = autoCGT_mcb || '';
+  }
+
+  const totalCGT = (parseFloat(document.getElementById('f-hblcgt')?.value)||0) +
+                   (parseFloat(document.getElementById('f-ublcgt')?.value)||0) +
+                   (parseFloat(document.getElementById('f-mcbcgt')?.value)||0);
   const netChange = selectedTxType === 'Profit Update' ? grossChange - totalCGT : grossChange;
 
   let previewHTML = `
@@ -1257,9 +1306,17 @@ function updateCalcPreview() {
     <div class="calc-item"><div class="cl">Gross change</div><div class="cv ${colorClass(grossChange)}">${fmtSigned(grossChange)}</div></div>`;
 
   if (selectedTxType === 'Profit Update') {
+    if (last) {
+      const hblGain = Math.max(0, v.hblFund - (last.hblFund||0));
+      const ublGain = Math.max(0, v.ublFund - (last.ublFund||0));
+      const mcbGain = Math.max(0, v.mcbFund - (last.mcbFund||0));
+      previewHTML += `
+        <div class="calc-item"><div class="cl">HBL gain/CGT</div><div class="cv" style="font-size:12px">${fmt(hblGain)} / ${fmt(Math.round(hblGain*0.15*100)/100)}</div></div>
+        <div class="calc-item"><div class="cl">UBL gain/CGT</div><div class="cv" style="font-size:12px">${fmt(ublGain)} / ${fmt(Math.round(ublGain*0.15*100)/100)}</div></div>`;
+    }
     previewHTML += `
-      <div class="calc-item"><div class="cl">CGT deducted</div><div class="cv dn">${fmt(totalCGT)}</div></div>
-      <div class="calc-item"><div class="cl">Net change</div><div class="cv ${colorClass(netChange)}">${fmtSigned(netChange)}</div></div>`;
+      <div class="calc-item"><div class="cl">Total CGT (15%)</div><div class="cv dn">(${fmt(totalCGT)})</div></div>
+      <div class="calc-item"><div class="cl">Net change</div><div class="cv ${colorClass(netChange)}" style="font-size:15px;font-weight:700">${netChange<0?'('+fmt(Math.abs(netChange))+')':fmtSigned(netChange)}</div></div>`;
   } else if (selectedTxType === 'Redemption' && last) {
     const redeemAmt = Math.abs(grossChange);
     const avProfit = last.cumProfit || 0;
@@ -1267,7 +1324,7 @@ function updateCalcPreview() {
     const fromC = redeemAmt - fromP;
     previewHTML += `
       <div class="calc-item"><div class="cl">From profit</div><div class="cv up">${fmt(fromP)}</div></div>
-      <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fmt(fromC)}</div></div>`;
+      <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fromC>0?'('+fmt(fromC)+')':'—'}</div></div>`;
   }
   document.getElementById('calc-preview').innerHTML = previewHTML;
 }
