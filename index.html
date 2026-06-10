@@ -590,10 +590,13 @@ function renderDashboard(sorted) {
   const last = sorted[sorted.length - 1];
 
   // Find yesterday's last profit update
-  const todayStr = last.date;
+  // Use the last profit update date as "today" (in case entries are made days later)
   const profitDays = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking);
+  const lastProfitDate = profitDays.length ? profitDays[profitDays.length-1].date : null;
+  const todayStr = lastProfitDate || last.date;
   const todayUpdates = profitDays.filter(r => r.date === todayStr);
   const prevDayUpdates = profitDays.filter(r => r.date < todayStr);
+  // Net change = gross change minus CGT (already stored as netChange in profitTracking entries)
   const todayNet = todayUpdates.reduce((s,r) => s + (r.netChange||0), 0);
   const todayCGT = todayUpdates.reduce((s,r) => s + (r.totalCGT||0), 0);
   const prevLast = prevDayUpdates[prevDayUpdates.length-1];
@@ -603,12 +606,12 @@ function renderDashboard(sorted) {
   const diff = prevNet !== null ? todayNet - prevNet : null;
   document.getElementById('day-banner').innerHTML = `
     <div class="metric-card highlight">
-      <div class="lbl">Today's day change (net after CGT)</div>
+      <div class="lbl">Latest day change (net after CGT)</div>
       <div class="val ${colorClass(todayNet)}">${arrow(todayNet)} ${fmt(Math.abs(todayNet))}</div>
-      <div class="sub">${diff !== null ? `vs yesterday: <span class="${colorClass(diff)}">${fmtSigned(diff)}</span> <strong>${diff>=0?'↑':'↓'}</strong>` : 'First entry'}</div>
+      <div class="sub">${diff !== null ? `vs last: <span class="${colorClass(diff)}">${fmtSigned(diff)}</span> <strong>${diff>=0?'↑':'↓'}</strong>` : 'First entry'}</div>
     </div>
     <div class="metric-card">
-      <div class="lbl">Yesterday's day change</div>
+      <div class="lbl">Last day change</div>
       <div class="val ${colorClass(prevNet)}">${prevNet!==null?arrow(prevNet)+' '+fmt(Math.abs(prevNet)):'—'}</div>
       <div class="sub">${prevLast ? fmtDate(prevLast.date) : 'No prior data'}</div>
     </div>
@@ -623,7 +626,7 @@ function renderDashboard(sorted) {
       <div class="sub">Since inception</div>
     </div>`;
 
-  // Metrics
+  // Metrics — profit only from profitTracking entries (row 32 / May 14 onwards)
   const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
   const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
   const totFromProfit = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
@@ -631,12 +634,35 @@ function renderDashboard(sorted) {
   const allProfitChanges = profitDays.map(r=>r.netChange||0);
   const bestDay = Math.max(...allProfitChanges, 0);
   const worstDay = Math.min(...allProfitChanges, 0);
-  const simpleReturn = last.cumCapital > 0 ? ((last.cumProfit / last.cumCapital) * 100).toFixed(2) : '0.00';
+  // Recalculate cumulative profit correctly from scratch
+  let calcCumProfit = 0;
+  sorted.forEach(r => {
+    if (r.entryType === 'Profit Update' && r.profitTracking) {
+      calcCumProfit += (r.netChange || 0);
+    }
+    if (r.entryType === 'Redemption') {
+      calcCumProfit -= (r.fromProfit || 0);
+    }
+  });
+  calcCumProfit = Math.round(calcCumProfit * 100) / 100;
+  // Recalculate capital: base (before row 32) + all investments after - capital redemptions
+  const baseCapital = 12297409; // total at row 30 (last pre-profit entry)
+  let calcCumCapital = baseCapital;
+  sorted.forEach(r => {
+    if (r.entryType === 'New Investment' && r.profitTracking) {
+      calcCumCapital += (r.amountInOut || 0);
+    }
+    if (r.entryType === 'Redemption' && r.profitTracking) {
+      calcCumCapital -= (r.fromCapital || 0);
+    }
+  });
+  calcCumCapital = Math.round(calcCumCapital);
+  const simpleReturn = calcCumCapital > 0 ? ((calcCumProfit / calcCumCapital) * 100).toFixed(2) : '0.00';
 
   document.getElementById('metric-grid').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div><div class="sub up">↑ All time</div></div>
-    <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(last.cumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
-    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(last.cumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT</div></div>
+    <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
+    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
     <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${simpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>
     <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
@@ -695,6 +721,7 @@ function renderDashboard(sorted) {
       <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total redeemed</span><strong>${fmt(totRed)}</strong></div>
       <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From profit (first)</span><span class="up" style="font-weight:600">${fmt(totFromProfit)}</span></div>
       <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From capital (after)</span><span class="dn" style="font-weight:600">${fmt(totFromCapital)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Current profit pool</span><span class="up" style="font-weight:600">${fmt(calcCumProfit)}</span></div>
       <div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden;margin:4px 0">
         <div style="width:${totRed>0?(totFromProfit/totRed*100).toFixed(1):0}%;height:100%;background:#16a34a;border-radius:6px"></div>
       </div>
@@ -838,13 +865,27 @@ function renderAnalytics(sorted) {
 
   // Metrics
   const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
-  const simpleReturn = last.cumCapital > 0 ? ((last.cumProfit/last.cumCapital)*100).toFixed(2) : '0.00';
+  const simpleReturn = last.cumCapital > 0 ? ((last.cumProfit/last.cumCapital)*100).toFixed(2) : '0.00'; // note: uses excel cumProfit for analytics
   const xirr = calcXIRR(sorted);
+  // Recalculate correct profit for analytics too
+  let analyticsCumProfit = 0;
+  sorted.forEach(r => {
+    if (r.entryType === 'Profit Update' && r.profitTracking) analyticsCumProfit += (r.netChange||0);
+    if (r.entryType === 'Redemption') analyticsCumProfit -= (r.fromProfit||0);
+  });
+  analyticsCumProfit = Math.round(analyticsCumProfit*100)/100;
+  let analyticsCumCapital = 12297409;
+  sorted.forEach(r => {
+    if (r.entryType==='New Investment' && r.profitTracking) analyticsCumCapital += (r.amountInOut||0);
+    if (r.entryType==='Redemption' && r.profitTracking) analyticsCumCapital -= (r.fromCapital||0);
+  });
+  const analyticsSimpleReturn = analyticsCumCapital > 0 ? ((analyticsCumProfit/analyticsCumCapital)*100).toFixed(2) : '0.00';
+  const analyticsXirr = calcXIRR(sorted);
   document.getElementById('analytics-metrics').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div></div>
-    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(last.cumProfit)}</div></div>
+    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(analyticsCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card"><div class="lbl">Total CGT</div><div class="val dn">${fmt(totalCGT)}</div></div>
-    <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${simpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>`;
+    <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${analyticsSimpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>`;
 
   // CGT breakdown
   const hblCGT = sorted.reduce((s,r)=>s+(r.hblCGT||0),0);
@@ -866,17 +907,17 @@ function renderAnalytics(sorted) {
   // Returns section
   document.getElementById('returns-section').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div style="background:var(--surface2);border-radius:${getComputedStyle(document.documentElement).getPropertyValue('--radius')};padding:14px 16px">
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Simple return</div>
-        <div style="font-size:28px;font-weight:700;color:#16a34a">${simpleReturn}%</div>
-        <div style="font-size:12px;color:var(--text3)">Total profit ÷ total capital invested</div>
+        <div style="font-size:28px;font-weight:700;color:#16a34a">${analyticsSimpleReturn}%</div>
+        <div style="font-size:12px;color:var(--text3)">Net profit ÷ capital invested</div>
       </div>
       <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">XIRR (annualised)</div>
-        <div style="font-size:28px;font-weight:700;color:#16a34a">${xirr !== null ? xirr.toFixed(2)+'%' : 'Calculating...'}</div>
+        <div style="font-size:28px;font-weight:700;color:#16a34a">${analyticsXirr !== null ? analyticsXirr.toFixed(2)+'%' : 'Calculating...'}</div>
         <div style="font-size:12px;color:var(--text3)">Time-weighted, accounts for timing of cash flows</div>
       </div>
-      <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">Capital = ${fmt(last.cumCapital)} &nbsp;|&nbsp; Profit = ${fmt(last.cumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)}</div>
+      <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">Capital = ${fmt(analyticsCumCapital)} &nbsp;|&nbsp; Profit = ${fmt(analyticsCumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)}</div>
     </div>`;
 
   // MoM chart
