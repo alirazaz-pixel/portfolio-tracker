@@ -286,9 +286,9 @@ tbody tr:last-child td { border: none; }
           <button class="btn-icon" onclick="clearFilters()">✕ Clear</button>
         </div>
         <div class="filter-chips" id="type-chips" style="margin-bottom:14px"></div>
-        <div class="table-wrap">
+        <div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto;">
           <table>
-            <thead>
+            <thead style="position:sticky;top:0;background:var(--surface);z-index:10;">
               <tr>
                 <th>Date</th>
                 <th>Type</th>
@@ -314,7 +314,6 @@ tbody tr:last-child td { border: none; }
             <tbody id="records-tbody"></tbody>
           </table>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin:8px 0 4px;text-align:center">← scroll horizontally to see all columns →</div>
         <div class="pagination">
           <span id="pagination-info"></span>
           <div class="page-btns" id="page-btns"></div>
@@ -396,9 +395,9 @@ tbody tr:last-child td { border: none; }
         <div id="search-summary" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>
       </div>
       <div class="card">
-        <div class="table-wrap">
+        <div class="table-wrap" style="max-height:60vh;overflow-y:auto;overflow-x:auto;">
           <table>
-            <thead>
+            <thead style="position:sticky;top:0;background:var(--surface);z-index:10;">
               <tr>
                 <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th><th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>HBL CGT</th><th>UBL CGT</th><th>MCB CGT</th><th>Total CGT</th><th>Cum. Capital</th><th>Cum. Profit</th>
               </tr>
@@ -1634,28 +1633,120 @@ function exportExcel() {
 }
 
 function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const last = allRecords.sort((a,b)=>a.date<b.date?-1:1).slice(-1)[0] || {};
-  doc.setFontSize(18); doc.text('Portfolio Tracker — Summary Report', 14, 18);
-  doc.setFontSize(11); doc.setTextColor(100);
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 26);
-  doc.setTextColor(0);
-  const rows = [
-    ['Net Worth', fmt(last.total)],
-    ['Capital Invested', fmt(last.cumCapital)],
-    ['Cumulative Profit (net)', fmt(last.cumProfit)],
-    ['Total CGT Paid', fmt(allRecords.reduce((s,r)=>s+(r.totalCGT||0),0))],
-    ['Total Redeemed', fmt(allRecords.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0))],
-    ['Simple Return', ((last.cumProfit||0)/(last.cumCapital||1)*100).toFixed(2)+'%'],
-  ];
-  let y = 40;
-  rows.forEach(([k,v]) => {
-    doc.setFontSize(11); doc.setTextColor(100); doc.text(k, 14, y);
-    doc.setTextColor(0); doc.text(v, 120, y); y += 10;
+  // Get current filter state from records/search tabs
+  const fromDate = document.getElementById('filter-from')?.value || '';
+  const toDate = document.getElementById('filter-to')?.value || '';
+  const sorted = [...allRecords].sort((a,b) => a.date < b.date ? -1 : 1);
+  const filtered = sorted.filter(r => {
+    if (fromDate && r.date < fromDate) return false;
+    if (toDate && r.date > toDate) return false;
+    return true;
   });
-  doc.save(`Portfolio_Report_${today()}.pdf`);
-  showToast('📄 PDF exported!');
+  const last = sorted[sorted.length-1] || {};
+  const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
+  const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
+  const netProfit = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).reduce((s,r)=>s+(r.change||0)-(r.totalCGT||0),0);
+  const remainingProfit = netProfit - sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
+
+  // Open a new window with print-ready HTML
+  const win = window.open('', '_blank');
+  const fmtPDF = n => {
+    if (n == null || isNaN(n)) return '-';
+    const abs = Math.abs(Math.round(n));
+    const s = abs.toLocaleString('en-PK');
+    return (n < 0 ? '(' : '') + 'Rs.' + s + (n < 0 ? ')' : '');
+  };
+
+  let recordsHTML = '';
+  filtered.forEach(r => {
+    const net = (r.change||0) - (r.totalCGT||0);
+    recordsHTML += `<tr>
+      <td>${fmtDate(r.date)}</td>
+      <td>${r.entryType}</td>
+      <td style="text-align:right">${fmtPDF(r.hblFund)}</td>
+      <td style="text-align:right">${fmtPDF(r.ublFund)}</td>
+      <td style="text-align:right">${fmtPDF(r.mcbFund)}</td>
+      <td style="text-align:right">${fmtPDF(r.ublBank)}</td>
+      <td style="text-align:right">${fmtPDF(r.cash)}</td>
+      <td style="text-align:right;font-weight:600">${fmtPDF(r.total)}</td>
+      <td style="text-align:right;color:${net<0?'#dc2626':'#16a34a'}">${fmtPDF(net)}</td>
+      <td style="text-align:right;color:#dc2626">${r.totalCGT>0?fmtPDF(r.totalCGT):'-'}</td>
+      <td style="text-align:right">${fmtPDF(r.cumCapital)}</td>
+      <td style="text-align:right;color:#16a34a">${fmtPDF(r.cumProfit)}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Portfolio Tracker Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 20px; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+    .summary-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; }
+    .summary-card .lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .summary-card .val { font-size: 16px; font-weight: 700; }
+    .green { color: #16a34a; }
+    .red { color: #dc2626; }
+    h2 { font-size: 14px; font-weight: 700; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th { background: #f0f4ff; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #ddd; font-size: 9px; text-transform: uppercase; }
+    td { padding: 5px 8px; border: 1px solid #eee; }
+    tr:nth-child(even) { background: #fafafa; }
+    .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: center; }
+    @media print {
+      body { padding: 10px; }
+      @page { margin: 1cm; size: A4 landscape; }
+    }
+  </style>
+  </head><body>
+  <h1>Portfolio Tracker — Report</h1>
+  <div class="subtitle">Generated: ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'long',year:'numeric'})}${fromDate||toDate ? ' | Period: '+(fromDate?fmtDate(fromDate):'start')+' to '+(toDate?fmtDate(toDate):'latest') : ' | All records'}</div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="lbl">Net worth</div>
+      <div class="val">${fmtPDF(last.total)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Capital invested</div>
+      <div class="val">${fmtPDF(last.cumCapital)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Net profit earned</div>
+      <div class="val green">${fmtPDF(netProfit)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Remaining profit</div>
+      <div class="val green">${fmtPDF(remainingProfit)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Total CGT paid</div>
+      <div class="val red">${fmtPDF(totalCGT)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="lbl">Total redeemed</div>
+      <div class="val">${fmtPDF(totRed)}</div>
+    </div>
+  </div>
+
+  <h2>Transaction Records ${fromDate||toDate ? '(filtered)' : '(all)'} — ${filtered.length} entries</h2>
+  <table>
+    <thead><tr>
+      <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th>
+      <th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>CGT</th>
+      <th>Cum. Capital</th><th>Cum. Profit</th>
+    </tr></thead>
+    <tbody>${recordsHTML}</tbody>
+  </table>
+  <div class="footer">Portfolio Tracker · ${filtered.length} records · Generated ${new Date().toLocaleString()}</div>
+  <script>window.onload = function() { window.print(); }</script>
+  </body></html>`;
+
+  win.document.write(html);
+  win.document.close();
+  showToast('📄 PDF report opening — use Print > Save as PDF');
   document.getElementById('export-modal').classList.remove('open');
 }
 
