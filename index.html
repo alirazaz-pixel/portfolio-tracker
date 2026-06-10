@@ -515,14 +515,14 @@ const fmt = n => {
   if (n == null || isNaN(n)) return '—';
   const abs = Math.abs(n);
   const s = Math.round(abs).toLocaleString('en-PK');
-  return (n < 0 ? '−' : '') + '₨' + s;
+  return (n < 0 ? '−' : '') + 'PKR ' + s;
 };
 const fmtSigned = n => {
   if (n == null || isNaN(n)) return '—';
   const abs = Math.abs(n);
   const s = Math.round(abs).toLocaleString('en-PK');
   const sign = n > 0 ? '+' : n < 0 ? '−' : '';
-  return sign + '₨' + s;
+  return sign + 'PKR ' + s;
 };
 const fmtDate = d => {
   if (!d) return '';
@@ -1633,7 +1633,6 @@ function exportExcel() {
 }
 
 function exportPDF() {
-  // Get current filter state from records/search tabs
   const fromDate = document.getElementById('filter-from')?.value || '';
   const toDate = document.getElementById('filter-to')?.value || '';
   const sorted = [...allRecords].sort((a,b) => a.date < b.date ? -1 : 1);
@@ -1645,114 +1644,187 @@ function exportPDF() {
   const last = sorted[sorted.length-1] || {};
   const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
   const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
+  const totFromProfit = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
+  const totFromCapital = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromCapital||0),0);
   const netProfit = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).reduce((s,r)=>s+(r.change||0)-(r.totalCGT||0),0);
-  const remainingProfit = netProfit - sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
+  const remainingProfit = netProfit - totFromProfit;
+  const hblCGT = sorted.reduce((s,r)=>s+(r.hblCGT||0),0);
+  const ublCGT = sorted.reduce((s,r)=>s+(r.ublCGT||0),0);
+  const mcbCGT = sorted.reduce((s,r)=>s+(r.mcbCGT||0),0);
 
-  // Open a new window with print-ready HTML
-  const win = window.open('', '_blank');
-  const fmtPDF = n => {
-    if (n == null || isNaN(n)) return '-';
+  // Daily trend data
+  const trendDays = {};
+  sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).forEach(r=>{
+    if(!trendDays[r.date]) trendDays[r.date]=0;
+    trendDays[r.date]+=(r.change||0)-(r.totalCGT||0);
+  });
+  const trendEntries = Object.entries(trendDays).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).reverse();
+
+  const P = n => {
+    if(n==null||isNaN(n)) return '-';
     const abs = Math.abs(Math.round(n));
     const s = abs.toLocaleString('en-PK');
-    return (n < 0 ? '(' : '') + 'Rs.' + s + (n < 0 ? ')' : '');
+    if(n<0) return '<span style="color:#dc2626">(PKR '+s+')</span>';
+    return 'PKR '+s;
+  };
+  const Psign = n => {
+    if(n==null||isNaN(n)) return '-';
+    const abs = Math.abs(Math.round(n));
+    const s = abs.toLocaleString('en-PK');
+    if(n<0) return '<span style="color:#dc2626">(PKR '+s+')</span>';
+    if(n>0) return '<span style="color:#16a34a">+PKR '+s+'</span>';
+    return 'PKR 0';
   };
 
-  let recordsHTML = '';
-  filtered.forEach(r => {
-    const net = (r.change||0) - (r.totalCGT||0);
-    recordsHTML += `<tr>
+  // Fund allocation
+  const total = last.total || 1;
+  const funds = [
+    {name:'HBL Fund', val:last.hblFund||0},
+    {name:'UBL Fund', val:last.ublFund||0},
+    {name:'MCB Fund', val:last.mcbFund||0},
+    {name:'UBL Bank', val:last.ublBank||0},
+    {name:'Cash', val:last.cash||0},
+  ];
+
+  let trendRows = '';
+  trendEntries.forEach(([d,v],i)=>{
+    const prev = i>0?trendEntries[i-1][1]:null;
+    const dir = prev===null?'':v>=prev?'▲':'▼';
+    const col = v>=0?'#16a34a':'#dc2626';
+    trendRows+=`<tr><td>${fmtDate(d)}</td><td style="text-align:right;color:${col};font-weight:600">${v<0?'(PKR '+Math.abs(Math.round(v)).toLocaleString('en-PK')+')':'+PKR '+Math.round(v).toLocaleString('en-PK')}</td><td style="text-align:center;color:${col}">${dir}</td></tr>`;
+  });
+
+  let fundRows = funds.map(f=>`<tr><td>${f.name}</td><td style="text-align:right;font-weight:600">PKR ${Math.round(f.val).toLocaleString('en-PK')}</td><td style="text-align:right">${((f.val/total)*100).toFixed(1)}%</td></tr>`).join('');
+
+  let recordRows = '';
+  filtered.forEach(r=>{
+    const net=(r.change||0)-(r.totalCGT||0);
+    const typeColors={'Profit Update':'#2563eb','New Investment':'#16a34a','Redemption':'#dc2626','Transfer/Rebalance':'#d97706'};
+    recordRows+=`<tr>
       <td>${fmtDate(r.date)}</td>
-      <td>${r.entryType}</td>
-      <td style="text-align:right">${fmtPDF(r.hblFund)}</td>
-      <td style="text-align:right">${fmtPDF(r.ublFund)}</td>
-      <td style="text-align:right">${fmtPDF(r.mcbFund)}</td>
-      <td style="text-align:right">${fmtPDF(r.ublBank)}</td>
-      <td style="text-align:right">${fmtPDF(r.cash)}</td>
-      <td style="text-align:right;font-weight:600">${fmtPDF(r.total)}</td>
-      <td style="text-align:right;color:${net<0?'#dc2626':'#16a34a'}">${fmtPDF(net)}</td>
-      <td style="text-align:right;color:#dc2626">${r.totalCGT>0?fmtPDF(r.totalCGT):'-'}</td>
-      <td style="text-align:right">${fmtPDF(r.cumCapital)}</td>
-      <td style="text-align:right;color:#16a34a">${fmtPDF(r.cumProfit)}</td>
+      <td><span style="color:${typeColors[r.entryType]||'#333'};font-weight:600;font-size:9px">${r.entryType}</span></td>
+      <td style="text-align:right">PKR ${Math.round(r.hblFund||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right">PKR ${Math.round(r.ublFund||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right">PKR ${Math.round(r.mcbFund||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right">PKR ${Math.round(r.ublBank||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right">PKR ${Math.round(r.cash||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right;font-weight:700">PKR ${Math.round(r.total||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right;color:${net<0?'#dc2626':'#16a34a'};font-weight:600">${net<0?'(PKR '+Math.abs(Math.round(net)).toLocaleString('en-PK')+')':'PKR '+Math.round(net).toLocaleString('en-PK')}</td>
+      <td style="text-align:right;color:#dc2626">${r.hblCGT>0?'PKR '+Math.round(r.hblCGT).toLocaleString('en-PK'):'-'}</td>
+      <td style="text-align:right;color:#dc2626">${r.ublCGT>0?'PKR '+Math.round(r.ublCGT).toLocaleString('en-PK'):'-'}</td>
+      <td style="text-align:right;color:#dc2626">${r.totalCGT>0?'PKR '+Math.round(r.totalCGT).toLocaleString('en-PK'):'-'}</td>
+      <td style="text-align:right">PKR ${Math.round(r.cumCapital||0).toLocaleString('en-PK')}</td>
+      <td style="text-align:right;color:#16a34a">${r.fromProfit>0?'PKR '+Math.round(r.fromProfit).toLocaleString('en-PK'):'-'}</td>
+      <td style="text-align:right;color:#dc2626">${r.fromCapital>0?'(PKR '+Math.round(r.fromCapital).toLocaleString('en-PK')+')':'-'}</td>
+      <td style="color:#888;font-size:9px">${r.notes||''}</td>
     </tr>`;
   });
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Portfolio Tracker Report</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 20px; }
-    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
-    .summary-card { border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; }
-    .summary-card .lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-    .summary-card .val { font-size: 16px; font-weight: 700; }
-    .green { color: #16a34a; }
-    .red { color: #dc2626; }
-    h2 { font-size: 14px; font-weight: 700; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: #f0f4ff; padding: 6px 8px; text-align: left; font-weight: 600; border: 1px solid #ddd; font-size: 9px; text-transform: uppercase; }
-    td { padding: 5px 8px; border: 1px solid #eee; }
-    tr:nth-child(even) { background: #fafafa; }
-    .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: center; }
-    @media print {
-      body { padding: 10px; }
-      @page { margin: 1cm; size: A4 landscape; }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Arial,sans-serif;font-size:10px;color:#1a1a1a;background:#fff;}
+    .page{padding:20px 24px;}
+    h1{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:2px;}
+    .subtitle{font-size:11px;color:#666;margin-bottom:18px;}
+    .section-title{font-size:13px;font-weight:700;color:#1a1a1a;margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid #2563eb;}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    .kpi{border:1px solid #e2e6ea;border-radius:8px;padding:10px 12px;}
+    .kpi .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;}
+    .kpi .val{font-size:14px;font-weight:700;color:#1a1a1a;}
+    .kpi .val.green{color:#16a34a;}
+    .kpi .val.red{color:#dc2626;}
+    .kpi .val.blue{color:#2563eb;}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+    .mini-table{width:100%;border-collapse:collapse;font-size:10px;}
+    .mini-table th{background:#f0f4ff;padding:5px 8px;text-align:left;font-size:9px;text-transform:uppercase;border:1px solid #ddd;}
+    .mini-table td{padding:5px 8px;border:1px solid #eee;}
+    .mini-table tr:nth-child(even){background:#fafafa;}
+    .records-table{width:100%;border-collapse:collapse;font-size:9px;}
+    .records-table th{background:#1a1a2e;color:#fff;padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;white-space:nowrap;}
+    .records-table td{padding:4px 6px;border-bottom:1px solid #eee;white-space:nowrap;}
+    .records-table tr:nth-child(even) td{background:#f8f9fa;}
+    .page-break{page-break-before:always;}
+    @media print{
+      @page{margin:1cm;size:A4 landscape;}
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .no-print{display:none;}
     }
+    .print-btn{position:fixed;top:16px;right:16px;background:#2563eb;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
   </style>
   </head><body>
-  <h1>Portfolio Tracker — Report</h1>
-  <div class="subtitle">Generated: ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'long',year:'numeric'})}${fromDate||toDate ? ' | Period: '+(fromDate?fmtDate(fromDate):'start')+' to '+(toDate?fmtDate(toDate):'latest') : ' | All records'}</div>
 
-  <div class="summary-grid">
-    <div class="summary-card">
-      <div class="lbl">Net worth</div>
-      <div class="val">${fmtPDF(last.total)}</div>
+  <button class="print-btn no-print" onclick="window.print()">⬇ Save as PDF</button>
+
+  <!-- PAGE 1: DASHBOARD -->
+  <div class="page">
+    <h1>Portfolio Tracker</h1>
+    <div class="subtitle">Report generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})} | As of ${fmtDate(last.date||today())}</div>
+
+    <div class="section-title">Portfolio Summary</div>
+    <div class="grid4">
+      <div class="kpi"><div class="lbl">Net worth</div><div class="val">PKR ${Math.round(last.total||0).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Capital invested</div><div class="val">PKR ${Math.round(last.cumCapital||0).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Net profit earned</div><div class="val green">PKR ${Math.round(netProfit).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Remaining profit</div><div class="val green">PKR ${Math.round(remainingProfit).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Total CGT paid</div><div class="val red">PKR ${Math.round(totalCGT).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Total redeemed</div><div class="val">PKR ${Math.round(totRed).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">From profit (FIFO)</div><div class="val green">PKR ${Math.round(totFromProfit).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">From capital</div><div class="val red">PKR ${Math.round(totFromCapital).toLocaleString('en-PK')}</div></div>
     </div>
-    <div class="summary-card">
-      <div class="lbl">Capital invested</div>
-      <div class="val">${fmtPDF(last.cumCapital)}</div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-title">Fund Allocation</div>
+        <table class="mini-table">
+          <thead><tr><th>Fund</th><th style="text-align:right">Value</th><th style="text-align:right">%</th></tr></thead>
+          <tbody>${fundRows}</tbody>
+        </table>
+      </div>
+      <div>
+        <div class="section-title">Daily Profit Trend (last 14 days)</div>
+        <table class="mini-table">
+          <thead><tr><th>Date</th><th style="text-align:right">Net Change</th><th style="text-align:center">Dir</th></tr></thead>
+          <tbody>${trendRows}</tbody>
+        </table>
+      </div>
     </div>
-    <div class="summary-card">
-      <div class="lbl">Net profit earned</div>
-      <div class="val green">${fmtPDF(netProfit)}</div>
-    </div>
-    <div class="summary-card">
-      <div class="lbl">Remaining profit</div>
-      <div class="val green">${fmtPDF(remainingProfit)}</div>
-    </div>
-    <div class="summary-card">
-      <div class="lbl">Total CGT paid</div>
-      <div class="val red">${fmtPDF(totalCGT)}</div>
-    </div>
-    <div class="summary-card">
-      <div class="lbl">Total redeemed</div>
-      <div class="val">${fmtPDF(totRed)}</div>
+
+    <div class="section-title">CGT Breakdown</div>
+    <div class="grid3">
+      <div class="kpi"><div class="lbl">HBL Fund CGT</div><div class="val red">PKR ${Math.round(hblCGT).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">UBL Fund CGT</div><div class="val red">PKR ${Math.round(ublCGT).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">MCB Fund CGT</div><div class="val red">PKR ${Math.round(mcbCGT).toLocaleString('en-PK')}</div></div>
     </div>
   </div>
 
-  <h2>Transaction Records ${fromDate||toDate ? '(filtered)' : '(all)'} — ${filtered.length} entries</h2>
-  <table>
-    <thead><tr>
-      <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th>
-      <th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>CGT</th>
-      <th>Cum. Capital</th><th>Cum. Profit</th>
-    </tr></thead>
-    <tbody>${recordsHTML}</tbody>
-  </table>
-  <div class="footer">Portfolio Tracker · ${filtered.length} records · Generated ${new Date().toLocaleString()}</div>
-  <scr' + 'ipt>window.onload = function() { window.print(); }</scr' + 'ipt>
+  <!-- PAGE 2: RECORDS -->
+  <div class="page page-break">
+    <h1>Transaction Records</h1>
+    <div class="subtitle">${filtered.length} records${fromDate||toDate?' | Period: '+(fromDate?fmtDate(fromDate):'start')+' to '+(toDate?fmtDate(toDate):'latest'):' | All records'}</div>
+    <table class="records-table">
+      <thead><tr>
+        <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th>
+        <th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th>
+        <th>HBL CGT</th><th>UBL CGT</th><th>Total CGT</th>
+        <th>Cum. Capital</th><th>From Profit</th><th>From Capital</th><th>Notes</th>
+      </tr></thead>
+      <tbody>${recordRows}</tbody>
+    </table>
+  </div>
+
   </body></html>`;
 
+  // Write to new window and trigger print
+  const win = window.open('', '_blank', 'width=1200,height=800');
   win.document.write(html);
   win.document.close();
-  showToast('📄 PDF report opening — use Print > Save as PDF');
+  showToast('📄 Report ready — click "Save as PDF" button or Ctrl+P');
   document.getElementById('export-modal').classList.remove('open');
 }
 
-// ============================================================
-// NAVIGATION
-// ============================================================
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
