@@ -344,6 +344,15 @@ tbody tr:last-child td { border: none; }
           <div id="returns-section"></div>
         </div>
       </div>
+
+      <!-- Monthly annualised return chart -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">Monthly annualised return
+          <span style="font-size:11px;color:var(--text3);font-weight:400">— auto-updates each month</span>
+        </div>
+        <div style="position:relative;height:260px"><canvas id="monthly-return-chart" role="img" aria-label="Monthly annualised return chart"></canvas></div>
+        <div id="monthly-return-table" style="margin-top:14px;overflow-x:auto"></div>
+      </div>
     </div>
 
     <!-- SEARCH -->
@@ -665,18 +674,39 @@ function renderDashboard(sorted) {
     }
   });
   calcCumCapital = Math.round(calcCumCapital);
-  // Annualised return: (net profit / capital) * (365 / days since first entry)
+  // Annualised return using weighted average capital from profit tracking start (May 14)
+  const profitStartDate = new Date('2026-05-14T00:00:00');
+  const lastEntryDate = sorted.length ? new Date(sorted[sorted.length-1].date+'T00:00:00') : new Date();
   const firstEntryDate = sorted.length ? new Date(sorted[0].date+'T00:00:00') : new Date();
-  const daysSinceStart = Math.max(1, (new Date() - firstEntryDate) / (1000*60*60*24));
-  const annualisedReturn = calcCumCapital > 0 ? ((calcCumProfit / calcCumCapital) * (365 / daysSinceStart) * 100).toFixed(2) : '0.00';
-  const simpleReturn = calcCumCapital > 0 ? ((calcCumProfit / calcCumCapital) * 100).toFixed(2) : '0.00';
+  const daysSinceStart = Math.max(1, Math.round((lastEntryDate - firstEntryDate) / (1000*60*60*24)));
+  const profitDaysCount = Math.max(1, Math.round((lastEntryDate - profitStartDate) / (1000*60*60*24)));
+  // Net profit for return = gross profit updates - CGT (redemptions from profit NOT deducted)
+  const netProfitForReturn = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking)
+    .reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
+  // Weighted average capital from profit tracking start
+  const profitSorted = sorted.filter(r => r.date >= '2026-05-14');
+  let weightedCapSum = 0;
+  for (let i = 0; i < profitSorted.length; i++) {
+    const r = profitSorted[i];
+    const nextDate = i+1 < profitSorted.length ? new Date(profitSorted[i+1].date+'T00:00:00') : lastEntryDate;
+    const daysHeld = Math.max(0, (nextDate - new Date(r.date+'T00:00:00')) / (1000*60*60*24));
+    weightedCapSum += (r.cumCapital||0) * daysHeld;
+  }
+  const avgCapital = profitDaysCount > 0 ? weightedCapSum / profitDaysCount : calcCumCapital;
+  const simpleReturn = avgCapital > 0 ? ((netProfitForReturn / avgCapital) * 100).toFixed(4) : '0.0000';
+  const annualisedReturn = avgCapital > 0 ? ((netProfitForReturn / avgCapital) * (365 / profitDaysCount) * 100).toFixed(2) : '0.00';
 
   document.getElementById('metric-grid').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div><div class="sub up">↑ All time</div></div>
     <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
     <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
-    <div class="metric-card"><div class="lbl">Annualised return</div><div class="val up">${annualisedReturn}%</div><div class="sub" style="color:var(--text3)">Net profit annualised</div></div>
+    <div class="metric-card">
+      <div class="lbl">Annualised return</div>
+      <div class="val up">${annualisedReturn}% p.a.</div>
+      <div class="sub" style="color:var(--text3)">Return over ${profitDaysCount} days: ${simpleReturn}%</div>
+      <div class="sub" style="color:var(--text3);margin-top:2px">Profit from 14 May · Invested ${daysSinceStart} days</div>
+    </div>
     <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
     <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
     <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${fmt(worstDay)}</div></div>`;
@@ -953,7 +983,22 @@ function renderAnalytics(sorted) {
     if (r.entryType==='New Investment' && r.profitTracking) analyticsCumCapital += (r.amountInOut||0);
     if (r.entryType==='Redemption' && r.profitTracking) analyticsCumCapital -= (r.fromCapital||0);
   });
-  const analyticsSimpleReturn = analyticsCumCapital > 0 ? ((analyticsCumProfit/analyticsCumCapital)*100).toFixed(2) : '0.00';
+  const analyticsNetProfitForReturn = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking)
+    .reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
+  const analyticsProfitDays = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date('2026-05-14T00:00:00')) / (1000*60*60*24)));
+  const analyticsDaysSinceStart = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date(sorted[0].date+'T00:00:00')) / (1000*60*60*24)));
+  // Weighted average capital
+  const aProfitSorted = sorted.filter(r=>r.date>='2026-05-14');
+  const aLastDate = new Date(sorted[sorted.length-1].date+'T00:00:00');
+  let aWeightedSum = 0;
+  for (let i=0;i<aProfitSorted.length;i++) {
+    const r=aProfitSorted[i];
+    const nd = i+1<aProfitSorted.length ? new Date(aProfitSorted[i+1].date+'T00:00:00') : aLastDate;
+    aWeightedSum += (r.cumCapital||0) * Math.max(0,(nd-new Date(r.date+'T00:00:00'))/(1000*60*60*24));
+  }
+  const aAvgCapital = aWeightedSum / analyticsProfitDays;
+  const analyticsSimpleReturn = aAvgCapital > 0 ? ((analyticsNetProfitForReturn/aAvgCapital)*(365/analyticsProfitDays)*100).toFixed(2) : '0.00';
+  const analyticsSimpleReturnTotal = aAvgCapital > 0 ? ((analyticsNetProfitForReturn/aAvgCapital)*100).toFixed(4) : '0.0000';
   const analyticsXirr = calcXIRR(sorted);
   document.getElementById('analytics-metrics').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div></div>
@@ -982,20 +1027,46 @@ function renderAnalytics(sorted) {
   document.getElementById('returns-section').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Annualised return</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Annualised return (p.a.)</div>
         <div style="font-size:28px;font-weight:700;color:#16a34a">${analyticsSimpleReturn}%</div>
-        <div style="font-size:12px;color:var(--text3)">Net profit annualised over holding period</div>
+        <div style="font-size:12px;color:var(--text3)">Weighted avg capital over ${analyticsProfitDays} days</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+            <span style="color:var(--text3)">Net profit earned</span>
+            <span style="font-weight:600;color:#16a34a">${fmt(analyticsNetProfitForReturn)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+            <span style="color:var(--text3)">Return over ${analyticsProfitDays} days</span>
+            <span style="font-weight:600;color:#16a34a">${analyticsSimpleReturnTotal}%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+            <span style="color:var(--text3)">Annualised (×365÷${analyticsProfitDays})</span>
+            <span style="font-weight:600;color:#16a34a">${analyticsSimpleReturn}% p.a.</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+            <span style="color:var(--text3)">Profit tracking from</span>
+            <span style="font-weight:600">14 May 2026 (${analyticsProfitDays} days)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+            <span style="color:var(--text3)">Invested since</span>
+            <span style="font-weight:600">${fmtDate(sorted[0].date)} (${analyticsDaysSinceStart} days)</span>
+          </div>
+        </div>
       </div>
       <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">XIRR (annualised)</div>
         <div style="font-size:28px;font-weight:700;color:#16a34a">${analyticsXirr !== null ? analyticsXirr.toFixed(2)+'%' : 'Calculating...'}</div>
         <div style="font-size:12px;color:var(--text3)">Time-weighted, accounts for timing of cash flows</div>
       </div>
-      <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">Capital = ${fmt(analyticsCumCapital)} &nbsp;|&nbsp; Profit = ${fmt(analyticsCumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)}</div>
+      <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">
+        Capital = ${fmt(analyticsCumCapital)} &nbsp;|&nbsp; Net profit = ${fmt(analyticsCumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)} &nbsp;|&nbsp; ${daysSinceStart} days
+      </div>
     </div>`;
 
   // MoM chart
   renderMomChart(months, mKeys);
+  // Monthly annualised return chart
+  renderMonthlyReturnChart(sorted);
 }
 
 function renderMomChart(months, mKeys) {
@@ -1312,6 +1383,131 @@ async function confirmDelete() {
     else { allRecords = allRecords.filter(r=>r.id!==deletingId); renderAll(); showToast('🗑️ Entry deleted (demo)'); }
     closeDeleteModal();
   } catch(e) { showToast('❌ Error: '+e.message); }
+}
+
+// ============================================================
+// MONTHLY ANNUALISED RETURN CHART
+// ============================================================
+function renderMonthlyReturnChart(sorted) {
+  const canvas = document.getElementById('monthly-return-chart');
+  const tableEl = document.getElementById('monthly-return-table');
+  if (!canvas || !tableEl) return;
+
+  // Group profit update entries by month
+  const months = {};
+  sorted.forEach(r => {
+    if (r.entryType !== 'Profit Update' || !r.profitTracking) return;
+    const m = r.date.slice(0,7);
+    if (!months[m]) months[m] = { entries: [], label: '' };
+    const d = new Date(r.date+'T00:00:00');
+    months[m].label = d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    months[m].entries.push(r);
+  });
+
+  const mKeys = Object.keys(months).sort();
+  const results = [];
+
+  mKeys.forEach(m => {
+    const entries = months[m].entries;
+    if (!entries.length) return;
+
+    // Net profit for this month
+    const netProfit = entries.reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
+
+    // Days in this month's data (first to last entry)
+    const firstDate = new Date(entries[0].date+'T00:00:00');
+    const lastDate = new Date(entries[entries.length-1].date+'T00:00:00');
+    const days = Math.max(1, Math.round((lastDate - firstDate) / (1000*60*60*24)) + 1);
+
+    // Weighted average capital for this month
+    let weightedSum = 0;
+    // Get capital entries for this month from full sorted list
+    const monthEntries = sorted.filter(r => r.date.startsWith(m));
+    for (let i = 0; i < monthEntries.length; i++) {
+      const r = monthEntries[i];
+      const nextR = monthEntries[i+1];
+      const nd = nextR ? new Date(nextR.date+'T00:00:00') : lastDate;
+      const dHeld = Math.max(0, (nd - new Date(r.date+'T00:00:00')) / (1000*60*60*24));
+      weightedSum += (r.cumCapital||0) * dHeld;
+    }
+    const avgCap = days > 0 ? weightedSum / days : (entries[0].cumCapital||1);
+    const annReturn = avgCap > 0 ? ((netProfit / avgCap) * (365 / days) * 100) : 0;
+
+    results.push({
+      label: months[m].label,
+      month: m,
+      netProfit: Math.round(netProfit),
+      days,
+      avgCap: Math.round(avgCap),
+      annReturn: Math.round(annReturn * 100) / 100
+    });
+  });
+
+  if (!results.length) return;
+
+  // Draw chart
+  if (window._monthlyReturnChart) window._monthlyReturnChart.destroy();
+  const colors = results.map(r => r.annReturn >= 0 ? '#16a34a' : '#dc2626');
+  window._monthlyReturnChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: results.map(r => r.label),
+      datasets: [{
+        label: 'Annualised return %',
+        data: results.map(r => r.annReturn),
+        backgroundColor: colors,
+        borderRadius: 5,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: ctx => ` ${ctx.raw >= 0 ? '+' : ''}${ctx.raw.toFixed(2)}% p.a.`,
+          afterLabel: ctx => {
+            const r = results[ctx.dataIndex];
+            return [
+              ` Net profit: ${fmt(r.netProfit)}`,
+              ` Over ${r.days} days`,
+              ` Avg capital: ${fmt(r.avgCap)}`
+            ];
+          }
+        }}
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          grid: { color: 'rgba(128,128,128,0.1)' },
+          ticks: { font: { size: 11 }, callback: v => v+'%' },
+          title: { display: true, text: 'Annualised return % p.a.', font: { size: 11 } }
+        }
+      }
+    }
+  });
+
+  // Table below chart
+  let tHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase">Month</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase">Net Profit</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase">Days</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase">Avg Capital</th>
+      <th style="text-align:right;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text3);font-size:11px;text-transform:uppercase">Ann. Return</th>
+    </tr></thead><tbody>`;
+  results.forEach(r => {
+    const col = r.annReturn >= 0 ? '#16a34a' : '#dc2626';
+    tHTML += `<tr>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border)">${r.label}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;color:${col};font-weight:600">${r.netProfit>=0?'+':''}${fmt(Math.abs(r.netProfit))}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text2)">${r.days}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text2)">${fmt(r.avgCap)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;font-weight:700;color:${col}">${r.annReturn>=0?'+':''}${r.annReturn.toFixed(2)}% p.a.</td>
+    </tr>`;
+  });
+  tHTML += `</tbody></table>`;
+  tableEl.innerHTML = tHTML;
 }
 
 // ============================================================
