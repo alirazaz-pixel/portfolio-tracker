@@ -238,7 +238,10 @@ tbody tr:last-child td { border: none; }
       <div class="metric-grid" id="metric-grid"></div>
       <div class="two-col">
         <div class="card">
-          <div class="card-title">Daily profit trend — last 14 days (net after CGT)</div>
+          <div class="card-title">Daily profit trend — last 14 days
+            <span style="font-size:11px;color:var(--text3);font-weight:400">gross change per day</span>
+          </div>
+          <div style="position:relative;height:200px;margin-bottom:8px"><canvas id="trend-chart" role="img" aria-label="Daily profit trend chart"></canvas></div>
           <div id="daily-trend"></div>
         </div>
         <div class="card">
@@ -287,7 +290,10 @@ tbody tr:last-child td { border: none; }
                 <th>Cash</th>
                 <th>Total</th>
                 <th>Day Change</th>
-                <th>CGT</th>
+                <th>HBL CGT</th>
+                <th>UBL CGT</th>
+                <th>MCB CGT</th>
+                <th>Total CGT</th>
                 <th>Cum. Capital</th>
                 <th>Cum. Profit</th>
                 <th>From Profit</th>
@@ -375,7 +381,7 @@ tbody tr:last-child td { border: none; }
           <table>
             <thead>
               <tr>
-                <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th><th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>CGT</th><th>Cum. Capital</th><th>Cum. Profit</th>
+                <th>Date</th><th>Type</th><th>HBL Fund</th><th>UBL Fund</th><th>MCB Fund</th><th>UBL Bank</th><th>Cash</th><th>Total</th><th>Day Change</th><th>HBL CGT</th><th>UBL CGT</th><th>MCB CGT</th><th>Total CGT</th><th>Cum. Capital</th><th>Cum. Profit</th>
               </tr>
             </thead>
             <tbody id="search-tbody"></tbody>
@@ -597,22 +603,22 @@ function renderDashboard(sorted) {
   const todayUpdates = profitDays.filter(r => r.date === todayStr);
   const prevDayUpdates = profitDays.filter(r => r.date < todayStr);
   // Net change = gross change minus CGT (already stored as netChange in profitTracking entries)
-  const todayNet = todayUpdates.reduce((s,r) => s + (r.netChange||0), 0);
+  const todayNet = todayUpdates.reduce((s,r) => s + ((r.change||0) - (r.totalCGT||0)), 0);  // net = gross - CGT
   const todayCGT = todayUpdates.reduce((s,r) => s + (r.totalCGT||0), 0);
   const prevLast = prevDayUpdates[prevDayUpdates.length-1];
-  const prevNet = prevLast ? prevDayUpdates.filter(r=>r.date===prevLast.date).reduce((s,r)=>s+(r.netChange||0),0) : null;
+  const prevNet = prevLast ? prevDayUpdates.filter(r=>r.date===prevLast.date).reduce((s,r)=>s+((r.change||0)-(r.totalCGT||0)),0) : null;
 
   // Banner
   const diff = prevNet !== null ? todayNet - prevNet : null;
   document.getElementById('day-banner').innerHTML = `
     <div class="metric-card highlight">
       <div class="lbl">Latest day change (net after CGT)</div>
-      <div class="val ${colorClass(todayNet)}">${arrow(todayNet)} ${fmt(Math.abs(todayNet))}</div>
-      <div class="sub">${diff !== null ? `vs last: <span class="${colorClass(diff)}">${fmtSigned(diff)}</span> <strong>${diff>=0?'↑':'↓'}</strong>` : 'First entry'}</div>
+      <div class="val" style="color:${todayNet>=0?'#16a34a':'#dc2626'}">${todayNet<0?'('+fmt(Math.abs(todayNet))+')':(arrow(todayNet)+' '+fmt(Math.abs(todayNet)))}</div>
+      <div class="sub">${diff !== null ? `vs last: <span style="font-weight:600;color:${diff>=0?'#16a34a':'#dc2626'}">${diff>=0?'+'+fmt(diff):'('+fmt(Math.abs(diff))+')'}</span> ${diff>=0?'↑':'↓'}` : 'First entry'}</div>
     </div>
     <div class="metric-card">
       <div class="lbl">Last day change</div>
-      <div class="val ${colorClass(prevNet)}">${prevNet!==null?arrow(prevNet)+' '+fmt(Math.abs(prevNet)):'—'}</div>
+      <div class="val" style="color:${prevNet===null?'var(--text3)':prevNet>=0?'#16a34a':'#dc2626'}">${prevNet!==null?(prevNet<0?'('+fmt(Math.abs(prevNet))+')':(arrow(prevNet)+' '+fmt(Math.abs(prevNet)))):'—'}</div>
       <div class="sub">${prevLast ? fmtDate(prevLast.date) : 'No prior data'}</div>
     </div>
     <div class="metric-card">
@@ -638,7 +644,9 @@ function renderDashboard(sorted) {
   let calcCumProfit = 0;
   sorted.forEach(r => {
     if (r.entryType === 'Profit Update' && r.profitTracking) {
-      calcCumProfit += (r.netChange || 0);
+      // gross change minus CGT = net profit for this entry
+      const entryNet = (r.change || 0) - (r.totalCGT || 0);
+      calcCumProfit += entryNet;
     }
     if (r.entryType === 'Redemption') {
       calcCumProfit -= (r.fromProfit || 0);
@@ -657,6 +665,10 @@ function renderDashboard(sorted) {
     }
   });
   calcCumCapital = Math.round(calcCumCapital);
+  // Annualised return: (net profit / capital) * (365 / days since first entry)
+  const firstEntryDate = sorted.length ? new Date(sorted[0].date+'T00:00:00') : new Date();
+  const daysSinceStart = Math.max(1, (new Date() - firstEntryDate) / (1000*60*60*24));
+  const annualisedReturn = calcCumCapital > 0 ? ((calcCumProfit / calcCumCapital) * (365 / daysSinceStart) * 100).toFixed(2) : '0.00';
   const simpleReturn = calcCumCapital > 0 ? ((calcCumProfit / calcCumCapital) * 100).toFixed(2) : '0.00';
 
   document.getElementById('metric-grid').innerHTML = `
@@ -664,7 +676,7 @@ function renderDashboard(sorted) {
     <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
     <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
-    <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${simpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>
+    <div class="metric-card"><div class="lbl">Annualised return</div><div class="val up">${annualisedReturn}%</div><div class="sub" style="color:var(--text3)">Net profit annualised</div></div>
     <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
     <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
     <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${fmt(worstDay)}</div></div>`;
@@ -673,7 +685,7 @@ function renderDashboard(sorted) {
   const trendDays = {};
   profitDays.forEach(r => {
     if (!trendDays[r.date]) trendDays[r.date] = {net:0, cgt:0};
-    trendDays[r.date].net += r.netChange||0;
+    trendDays[r.date].net += (r.change||0) - (r.totalCGT||0);  // net = gross - CGT
     trendDays[r.date].cgt += r.totalCGT||0;
   });
   const trendEntries = Object.entries(trendDays).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).reverse();
@@ -693,6 +705,40 @@ function renderDashboard(sorted) {
     </div>`;
   }
   document.getElementById('daily-trend').innerHTML = trendHTML || '<div class="empty-state"><p>No profit updates yet</p></div>';
+
+  // Chart.js trend chart
+  const trendCanvas = document.getElementById('trend-chart');
+  if (trendCanvas && trendEntries.length) {
+    if (window._trendChart) window._trendChart.destroy();
+    const trendColors = trendEntries.map(([,v]) => v.net >= 0 ? '#16a34a' : '#dc2626');
+    window._trendChart = new Chart(trendCanvas, {
+      type: 'bar',
+      data: {
+        labels: trendEntries.map(([d]) => fmtDate(d).slice(0,6)),
+        datasets: [{
+          label: 'Day change',
+          data: trendEntries.map(([,v]) => v.net),
+          backgroundColor: trendColors,
+          borderRadius: 4,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => {
+            const v = ctx.raw;
+            return v < 0 ? ' (' + fmt(Math.abs(v)) + ')' : ' +' + fmt(v);
+          }}}
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { font: { size: 10 }, callback: v => v < 0 ? '('+fmt(Math.abs(v))+')' : fmt(v) } }
+        }
+      }
+    });
+  }
 
   // Fund allocation
   const total = last.total || 1;
@@ -716,16 +762,39 @@ function renderDashboard(sorted) {
   document.getElementById('fund-allocation').innerHTML = allocHTML;
 
   // Redemption breakdown
+  const grossProfit = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).reduce((s,r)=>s+(r.change||0),0);
   document.getElementById('redemption-breakdown').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total redeemed</span><strong>${fmt(totRed)}</strong></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From profit (first)</span><span class="up" style="font-weight:600">${fmt(totFromProfit)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">From capital (after)</span><span class="dn" style="font-weight:600">${fmt(totFromCapital)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Current profit pool</span><span class="up" style="font-weight:600">${fmt(calcCumProfit)}</span></div>
-      <div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden;margin:4px 0">
-        <div style="width:${totRed>0?(totFromProfit/totRed*100).toFixed(1):0}%;height:100%;background:#16a34a;border-radius:6px"></div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Gross profit earned</span>
+        <span style="font-weight:600;color:#16a34a">${fmt(grossProfit)}</span>
       </div>
-      <div style="font-size:11px;color:var(--text3)">Green = profit portion. FIFO: profit exhausted first, then capital.</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">CGT paid (15%)</span>
+        <span style="font-weight:600;color:#dc2626">(${fmt(totalCGT)})</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Net profit earned</span>
+        <span style="font-weight:600;color:#16a34a">${fmt(grossProfit - totalCGT)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Redeemed from profit</span>
+        <span style="font-weight:600;color:#dc2626">(${fmt(totFromProfit)})</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);background:var(--surface2);margin:0 -4px;padding-left:4px;padding-right:4px;border-radius:6px;margin-top:4px">
+        <span style="font-weight:700">Remaining profit</span>
+        <span style="font-weight:700;color:#16a34a;font-size:16px">${fmt(calcCumProfit)}</span>
+      </div>
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text2)">Total redeemed</span><span style="font-weight:600">${fmt(totRed)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0">
+          <span style="color:var(--text2)">From capital</span>
+          <span style="font-weight:600;color:#dc2626">${totFromCapital>0?'('+fmt(totFromCapital)+')':'—'}</span>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px">FIFO: profit exhausted first, then capital</div>
+      </div>
     </div>`;
 
   // Growth chart
@@ -799,12 +868,15 @@ function renderRecords() {
       <td>${fmt(r.ublBank)}</td>
       <td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td class="${colorClass(r.netChange)}">${fmtSigned(r.netChange)}</td>
+      <td><span style="color:${((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">${(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}</span></td>
+      <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
+      <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
+      <td class="dn">${r.mcbCGT>0?fmt(r.mcbCGT):'—'}</td>
       <td class="dn">${r.totalCGT>0?fmt(r.totalCGT):'—'}</td>
       <td>${fmt(r.cumCapital)}</td>
       <td class="up">${fmt(r.cumProfit)}</td>
       <td class="up">${r.fromProfit>0?fmt(r.fromProfit):'—'}</td>
-      <td class="dn">${r.fromCapital>0?fmt(r.fromCapital):'—'}</td>
+      <td class="dn">${r.fromCapital>0?'('+fmt(r.fromCapital)+')':'—'}</td>
       <td style="color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
       <td style="white-space:nowrap">
         <button class="action-btn" onclick="openEditModal('${r.id}')" title="Edit">✏️</button>
@@ -870,7 +942,9 @@ function renderAnalytics(sorted) {
   // Recalculate correct profit for analytics too
   let analyticsCumProfit = 0;
   sorted.forEach(r => {
-    if (r.entryType === 'Profit Update' && r.profitTracking) analyticsCumProfit += (r.netChange||0);
+    if (r.entryType === 'Profit Update' && r.profitTracking) {
+      analyticsCumProfit += (r.change||0) - (r.totalCGT||0);
+    }
     if (r.entryType === 'Redemption') analyticsCumProfit -= (r.fromProfit||0);
   });
   analyticsCumProfit = Math.round(analyticsCumProfit*100)/100;
@@ -908,9 +982,9 @@ function renderAnalytics(sorted) {
   document.getElementById('returns-section').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:12px">
       <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Simple return</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">Annualised return</div>
         <div style="font-size:28px;font-weight:700;color:#16a34a">${analyticsSimpleReturn}%</div>
-        <div style="font-size:12px;color:var(--text3)">Net profit ÷ capital invested</div>
+        <div style="font-size:12px;color:var(--text3)">Net profit annualised over holding period</div>
       </div>
       <div style="background:var(--surface2);border-radius:var(--radius);padding:14px 16px">
         <div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">XIRR (annualised)</div>
@@ -982,7 +1056,10 @@ function renderSearch() {
       <td>${fmt(r.hblFund)}</td><td>${fmt(r.ublFund)}</td><td>${fmt(r.mcbFund)}</td>
       <td>${fmt(r.ublBank)}</td><td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td class="${colorClass(r.netChange)}">${fmtSigned(r.netChange)}</td>
+      <td><span style="color:${((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">${(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}</span></td>
+      <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
+      <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
+      <td class="dn">${r.mcbCGT>0?fmt(r.mcbCGT):'—'}</td>
       <td class="dn">${r.totalCGT>0?fmt(r.totalCGT):'—'}</td>
       <td>${fmt(r.cumCapital)}</td><td class="up">${fmt(r.cumProfit)}</td>
     </tr>`).join('')||`<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text3)">No records match your filters</td></tr>`;
