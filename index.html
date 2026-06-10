@@ -549,7 +549,7 @@ async function initApp() {
     if (snap.empty) {
       await importHistoricalData();
     }
-    db.collection('records').orderBy('date','asc').orderBy('rowNum','asc').onSnapshot(snap => {
+    db.collection('records').orderBy('date','asc').onSnapshot(snap => {
       allRecords = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderAll();
     });
