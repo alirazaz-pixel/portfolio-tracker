@@ -48,41 +48,7 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
-/* Mobile app shell */
-@media (max-width: 900px) {
-  html, body { 
-    height: 100%; 
-    overflow: hidden;
-  }
-  #app { 
-    height: 100vh;
-    display: flex; 
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .topbar { 
-    flex-shrink: 0;
-    height: 56px;
-  }
-  .main { 
-    flex: 1;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    height: calc(100vh - 56px - 70px);
-    max-height: calc(100vh - 56px - 70px);
-    padding-bottom: 20px;
-  }
-  /* All sections scroll identically */
-  .section {
-    overflow-x: hidden;
-  }
-  /* Wide tables scroll horizontally within their card */
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
+/* mobile CSS moved to end */
 /* login removed */
 /* APP LAYOUT */
 #app { display: block; }
@@ -215,6 +181,7 @@ tbody tr:last-child td { border: none; }
 /* SECTION TABS */
 .section { display: none; }
 .section.active { display: block; }
+/* removed small mobile block */
 /* EMPTY STATE */
 .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
 .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
@@ -243,17 +210,48 @@ tbody tr:last-child td { border: none; }
 }
 
 /* MOBILE — bottom navigation bar */
+/* mobile block 1 removed - consolidated at end */
+/* XIRR loading */
+.loading-dot { display: inline-block; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* Chart containers */
+.chart-mobile-wrap { position: relative; height: 240px; }
+
+/* =============================================
+   MOBILE — must be at END to override desktop
+   ============================================= */
 @media (max-width: 900px) {
+  body {
+    overflow-x: hidden;
+  }
+  /* Charts on mobile - smaller and non-blocking */
+  .chart-mobile-wrap {
+    height: 200px;
+    touch-action: pan-y;
+  }
+  .chart-mobile-wrap canvas {
+    touch-action: pan-y !important;
+    pointer-events: none !important;
+  }
   .metric-grid { grid-template-columns: repeat(2,1fr); }
   .day-banner { grid-template-columns: 1fr 1fr; }
-  .two-col, .three-col { grid-template-columns: 1fr; }
-  .analytics-grid { grid-template-columns: 1fr; }
+  .two-col, .three-col, .analytics-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .tx-type-grid { grid-template-columns: repeat(2,1fr); }
-  .main { padding: 12px; padding-bottom: 80px; height: 100%; }
-  .topbar { padding: 0 12px; }
   .nav-tabs { display: none !important; }
-  .btn-primary .btn-text { display: none; }
+  .topbar { padding: 0 12px; }
+  /* Override desktop .main padding */
+  .main {
+    padding: 12px !important;
+    padding-bottom: 90px !important;
+    max-width: 100% !important;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: none;
+  }
+  /* Bottom nav always visible */
   .bottom-nav {
     display: flex !important;
     position: fixed;
@@ -265,8 +263,8 @@ tbody tr:last-child td { border: none; }
     z-index: 99999;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
     will-change: transform;
-    transform: translateZ(0);
     -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
   .bottom-nav-item {
     flex: 1; display: flex; flex-direction: column;
@@ -296,9 +294,9 @@ tbody tr:last-child td { border: none; }
   .bottom-nav-fab .fab-circle:active { transform: scale(0.95); }
   .bottom-nav-fab .fab-label { font-size: 10px; color: var(--blue); font-weight: 600; }
 }
-/* XIRR loading */
-.loading-dot { display: inline-block; animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@media (min-width: 901px) {
+  .bottom-nav { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -337,7 +335,7 @@ tbody tr:last-child td { border: none; }
           <div class="card-title">Daily profit trend — last 14 days
             <span style="font-size:11px;color:var(--text3);font-weight:400">gross change per day</span>
           </div>
-          <div style="position:relative;height:200px;margin-bottom:8px"><canvas id="trend-chart" role="img" aria-label="Daily profit trend chart"></canvas></div>
+          <div style="position:relative;height:200px;margin-bottom:8px"><canvas id="trend-chart" style="touch-action:pan-y" role="img" aria-label="Daily profit trend chart"></canvas></div>
           <div id="daily-trend"></div>
         </div>
         <div class="card">
@@ -348,7 +346,7 @@ tbody tr:last-child td { border: none; }
       <div class="two-col">
         <div class="card">
           <div class="card-title">Portfolio growth</div>
-          <div style="position:relative;height:220px"><canvas id="growth-chart"></canvas></div>
+          <div style="position:relative;height:220px"><canvas id="growth-chart" style="touch-action:pan-y"></canvas></div>
         </div>
         <div class="card">
           <div class="card-title">Redemption breakdown (FIFO)</div>
@@ -409,7 +407,7 @@ tbody tr:last-child td { border: none; }
     </div>
 
     <!-- ANALYTICS -->
-    <div id="section-analytics" class="section">
+    <div id="section-analytics" class="section" style="touch-action:pan-y;-webkit-overflow-scrolling:touch;">
       <div class="metric-grid" style="margin-bottom:20px" id="analytics-metrics"></div>
       <div class="two-col">
         <div class="card">
@@ -427,7 +425,7 @@ tbody tr:last-child td { border: none; }
               <div class="chart-tab" onclick="switchMomChart('cgt',this)">CGT</div>
             </div>
           </div>
-          <div style="position:relative;height:240px"><canvas id="mom-chart"></canvas></div>
+          <div class="chart-mobile-wrap"><canvas id="mom-chart" style="touch-action:pan-y;pointer-events:none"></canvas></div>
         </div>
       </div>
       <div class="two-col">
@@ -446,13 +444,13 @@ tbody tr:last-child td { border: none; }
         <div class="card-title">Monthly annualised return
           <span style="font-size:11px;color:var(--text3);font-weight:400">— auto-updates each month</span>
         </div>
-        <div style="position:relative;height:260px"><canvas id="monthly-return-chart" role="img" aria-label="Monthly annualised return chart"></canvas></div>
+        <div class="chart-mobile-wrap"><canvas id="monthly-return-chart" style="touch-action:pan-y;pointer-events:none" role="img" aria-label="Monthly annualised return chart"></canvas></div>
         <div id="monthly-return-table" style="margin-top:14px;overflow-x:auto"></div>
       </div>
     </div>
 
     <!-- SEARCH -->
-    <div id="section-search" class="section">
+    <div id="section-search" class="section" style="touch-action:pan-y;-webkit-overflow-scrolling:touch;">
       <div class="card" style="margin-bottom:16px">
         <div class="card-title">Search & filter records</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
