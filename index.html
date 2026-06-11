@@ -50,18 +50,38 @@
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
 /* Mobile app shell */
 @media (max-width: 900px) {
-  html, body { height: 100%; }
-  #app { min-height: 100%; display: flex; flex-direction: column; }
-  .topbar { flex-shrink: 0; }
+  html, body { 
+    height: 100%; 
+    overflow: hidden;
+  }
+  #app { 
+    height: 100vh;
+    display: flex; 
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar { 
+    flex-shrink: 0;
+    height: 56px;
+  }
   .main { 
-    flex: 1; 
-    overflow-y: auto; 
-    overflow-x: hidden; 
+    flex: 1;
+    overflow-y: scroll;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     height: calc(100vh - 56px - 70px);
-    padding-bottom: 80px;
+    max-height: calc(100vh - 56px - 70px);
+    padding-bottom: 20px;
   }
-  .section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* All sections scroll identically */
+  .section {
+    overflow-x: hidden;
+  }
+  /* Wide tables scroll horizontally within their card */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 /* login removed */
 /* APP LAYOUT */
