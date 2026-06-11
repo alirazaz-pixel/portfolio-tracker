@@ -383,9 +383,9 @@ tbody tr:last-child td { border: none; }
           <div class="card-title">
             Monthly chart
             <div class="chart-tabs" id="chart-tabs">
-              <div class="chart-tab active" onclick="switchMomChart('profit')">Profit</div>
-              <div class="chart-tab" onclick="switchMomChart('invested')">Invested</div>
-              <div class="chart-tab" onclick="switchMomChart('cgt')">CGT</div>
+              <div class="chart-tab active" onclick="switchMomChart('profit',this)">Profit</div>
+              <div class="chart-tab" onclick="switchMomChart('invested',this)">Invested</div>
+              <div class="chart-tab" onclick="switchMomChart('cgt',this)">CGT</div>
             </div>
           </div>
           <div style="position:relative;height:240px"><canvas id="mom-chart"></canvas></div>
@@ -1020,6 +1020,7 @@ function clearFilters() {
 // ANALYTICS
 // ============================================================
 function renderAnalytics(sorted) {
+  try {
   if (!sorted.length) return;
   const last = sorted[sorted.length-1];
 
@@ -1159,6 +1160,7 @@ function renderAnalytics(sorted) {
   renderMomChart(months, mKeys);
   // Monthly annualised return chart
   renderMonthlyReturnChart(sorted);
+  } catch(e) { console.warn('renderAnalytics error:', e); }
 }
 
 function renderMomChart(months, mKeys) {
@@ -1182,10 +1184,10 @@ function renderMomChart(months, mKeys) {
   } catch(e) { console.warn('MoM chart error:', e); }
 }
 
-function switchMomChart(mode) {
+function switchMomChart(mode, el) {
   momChartMode = mode;
   document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
-  event.target.classList.add('active');
+  if (el) el.classList.add('active');
   const sorted = [...allRecords].sort((a,b)=>a.date.localeCompare(b.date));
   const months = {};
   sorted.forEach(r => {
