@@ -639,6 +639,9 @@ function initFirebase() {
 async function initApp() {
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
   loadTheme();
+  // Ensure bottom nav dashboard is active on load
+  const bnDash = document.getElementById('bn-dashboard');
+  if (bnDash) bnDash.classList.add('active');
   if (db) {
     // Check if data already imported
     const snap = await db.collection('records').limit(1).get();
@@ -674,8 +677,12 @@ function renderAll() {
   });
   renderDashboard(sorted);
   renderRecords();
-  renderAnalytics(sorted);
   renderSearch();
+  // Only render analytics if that section is currently visible
+  const analyticsSection = document.getElementById('section-analytics');
+  if (analyticsSection && analyticsSection.classList.contains('active')) {
+    renderAnalytics(sorted);
+  }
 }
 
 // ============================================================
@@ -820,7 +827,8 @@ function renderDashboard(sorted) {
   // Chart.js trend chart
   const trendCanvas = document.getElementById('trend-chart');
   if (trendCanvas && trendEntries.length) {
-    if (window._trendChart) window._trendChart.destroy();
+    try {
+  if (window._trendChart) window._trendChart.destroy();
     const trendColors = trendEntries.map(([,v]) => v.net >= 0 ? '#16a34a' : '#dc2626');
     window._trendChart = new Chart(trendCanvas, {
       type: 'bar',
@@ -849,6 +857,7 @@ function renderDashboard(sorted) {
         }
       }
     });
+  } catch(e) { console.warn('Trend chart error:', e); }
   }
 
   // Fund allocation
@@ -912,6 +921,7 @@ function renderDashboard(sorted) {
   const growthLabels = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>fmtDate(r.date).slice(0,6));
   const growthTotals = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.total);
   const growthCapital = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.cumCapital);
+  try {
   if (growthChart) growthChart.destroy();
   growthChart = new Chart(document.getElementById('growth-chart'), {
     type:'line',
@@ -931,6 +941,7 @@ function renderDashboard(sorted) {
       }
     }
   });
+  } catch(e) { console.warn('Growth chart error:', e); }
 }
 
 // ============================================================
@@ -1154,6 +1165,7 @@ function renderMomChart(months, mKeys) {
   const labels = mKeys.map(k => months[k].label);
   const data = mKeys.map(k => months[k][momChartMode] || 0);
   const colors = {'profit':'#2563eb','invested':'#16a34a','cgt':'#dc2626'};
+  try {
   if (momChart) momChart.destroy();
   momChart = new Chart(document.getElementById('mom-chart'), {
     type:'bar',
@@ -1167,6 +1179,7 @@ function renderMomChart(months, mKeys) {
       }
     }
   });
+  } catch(e) { console.warn('MoM chart error:', e); }
 }
 
 function switchMomChart(mode) {
@@ -1584,6 +1597,7 @@ function renderMonthlyReturnChart(sorted) {
   if (!results.length) return;
 
   // Draw chart
+  try {
   if (window._monthlyReturnChart) window._monthlyReturnChart.destroy();
   const colors = results.map(r => r.annReturn >= 0 ? '#16a34a' : '#dc2626');
   window._monthlyReturnChart = new Chart(canvas, {
@@ -1646,6 +1660,7 @@ function renderMonthlyReturnChart(sorted) {
   });
   tHTML += `</tbody></table>`;
   tableEl.innerHTML = tHTML;
+  } catch(e) { console.warn('Monthly return chart error:', e); }
 }
 
 // ============================================================
