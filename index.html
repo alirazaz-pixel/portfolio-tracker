@@ -197,66 +197,17 @@ tbody tr:last-child td { border: none; }
 .month-table th { font-size: 11px; color: var(--text3); text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid var(--border); font-weight: 600; letter-spacing: 0.04em; }
 .month-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .month-table tr:last-child td { border: none; font-weight: 700; background: var(--surface2); }
-/* SIDEBAR + BOTTOM NAV */
-.sidebar {
-  display: none;
-}
-.bottom-nav {
-  display: none;
-}
+/* BOTTOM NAV — mobile only */
+.bottom-nav { display: none; }
+.sidebar { display: none; }
 
-/* DESKTOP: left sidebar */
+/* DESKTOP — original top tabs layout */
 @media (min-width: 901px) {
-  .app-layout { display: flex; min-height: 100vh; }
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    width: 220px;
-    flex-shrink: 0;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 20px 12px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 50;
-  }
-  .sidebar-logo { 
-    font-size: 16px; font-weight: 700; color: var(--blue);
-    padding: 0 8px; margin-bottom: 24px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-  .sidebar-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px; border-radius: var(--radius);
-    font-size: 13px; font-weight: 500; cursor: pointer;
-    color: var(--text2); border: none; background: none;
-    transition: all 0.15s; text-align: left; width: 100%;
-  }
-  .sidebar-item:hover { background: var(--surface2); color: var(--text); }
-  .sidebar-item.active { background: var(--blue-light); color: var(--blue); }
-  .sidebar-item .icon { font-size: 16px; width: 20px; text-align: center; }
-  .sidebar-bottom {
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-    display: flex; flex-direction: column; gap: 8px;
-  }
-  .sidebar-new-entry {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px; border-radius: var(--radius);
-    background: var(--blue); color: #fff;
-    font-size: 13px; font-weight: 600; cursor: pointer;
-    border: none; width: 100%; justify-content: center;
-  }
-  .sidebar-new-entry:hover { opacity: 0.9; }
-  .app-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .nav-tabs { display: none; }
-  .topbar-logo { display: none; }
+  .nav-tabs { display: flex; }
+  .bottom-nav { display: none !important; }
 }
 
-/* MOBILE: bottom navigation */
+/* MOBILE — bottom navigation bar */
 @media (max-width: 900px) {
   .metric-grid { grid-template-columns: repeat(2,1fr); }
   .day-banner { grid-template-columns: 1fr 1fr; }
@@ -264,45 +215,47 @@ tbody tr:last-child td { border: none; }
   .analytics-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .tx-type-grid { grid-template-columns: repeat(2,1fr); }
-  .main { padding: 12px; padding-bottom: 80px; }
+  .main { padding: 12px; padding-bottom: 90px; }
   .topbar { padding: 0 12px; }
-  .nav-tabs { display: none; }
+  .nav-tabs { display: none !important; }
+  .btn-primary .btn-text { display: none; }
   .bottom-nav {
-    display: flex;
+    display: flex !important;
     position: fixed;
     bottom: 0; left: 0; right: 0;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: 8px 0 12px;
-    z-index: 100;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    padding: 6px 0 14px;
+    z-index: 9999;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.12);
   }
   .bottom-nav-item {
     flex: 1; display: flex; flex-direction: column;
-    align-items: center; gap: 3px;
+    align-items: center; gap: 2px;
     font-size: 10px; font-weight: 500;
     color: var(--text3); cursor: pointer;
     border: none; background: none; padding: 4px 0;
-    transition: color 0.15s;
+    transition: all 0.15s;
   }
-  .bottom-nav-item .bnav-icon { font-size: 20px; line-height: 1; }
+  .bottom-nav-item .bnav-icon { font-size: 19px; line-height: 1.2; }
   .bottom-nav-item.active { color: var(--blue); }
-  .bottom-nav-item.active .bnav-icon { transform: scale(1.1); }
+  .bottom-nav-item.active .bnav-icon { transform: scale(1.15); }
   .bottom-nav-fab {
     flex: 1; display: flex; flex-direction: column;
-    align-items: center; gap: 3px; cursor: pointer;
+    align-items: center; gap: 2px; cursor: pointer;
     border: none; background: none; padding: 0;
   }
   .bottom-nav-fab .fab-circle {
-    width: 44px; height: 44px; border-radius: 50%;
+    width: 46px; height: 46px; border-radius: 50%;
     background: var(--blue); color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 300;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.4);
-    margin-top: -16px;
+    font-size: 24px; line-height: 1;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.45);
+    margin-top: -18px;
+    transition: transform 0.15s;
   }
-  .bottom-nav-fab span { font-size: 10px; color: var(--blue); font-weight: 600; }
-  .sidebar { display: none !important; }
+  .bottom-nav-fab .fab-circle:active { transform: scale(0.95); }
+  .bottom-nav-fab .fab-label { font-size: 10px; color: var(--blue); font-weight: 600; }
 }
 /* XIRR loading */
 .loading-dot { display: inline-block; animation: pulse 1s infinite; }
@@ -313,59 +266,27 @@ tbody tr:last-child td { border: none; }
 
 <!-- MAIN APP -->
 <div id="app">
-  <div class="app-layout">
-
-    <!-- DESKTOP SIDEBAR -->
-    <div class="sidebar">
-      <div class="sidebar-logo">📊 Portfolio Tracker</div>
-      <div class="sidebar-nav">
-        <button class="sidebar-item active" id="sb-dashboard" onclick="showSection('dashboard')">
-          <span class="icon">📊</span> Dashboard
-        </button>
-        <button class="sidebar-item" id="sb-records" onclick="showSection('records')">
-          <span class="icon">📋</span> Records
-        </button>
-        <button class="sidebar-item" id="sb-analytics" onclick="showSection('analytics')">
-          <span class="icon">📈</span> Analytics
-        </button>
-        <button class="sidebar-item" id="sb-search" onclick="showSection('search')">
-          <span class="icon">🔍</span> Search
-        </button>
-      </div>
-      <div class="sidebar-bottom">
-        <button class="sidebar-new-entry" onclick="openEntryModal()">＋ New Entry</button>
-        <button class="btn-icon" style="width:100%;justify-content:center" onclick="showExportModal()">⬇ Export</button>
-        <div class="toggle-theme" style="justify-content:center;padding:4px 0">
-          <span>☀️</span>
-          <div class="toggle-switch" id="theme-toggle" onclick="toggleTheme()"></div>
-          <span>🌙</span>
-        </div>
-      </div>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">📊 Portfolio Tracker</div>
+      <div class="topbar-date" id="topbar-date"></div>
     </div>
-
-    <!-- MAIN CONTENT AREA -->
-    <div class="app-content">
-      <div class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-logo">📊 Portfolio Tracker</div>
-          <div class="topbar-date" id="topbar-date"></div>
-        </div>
-        <div class="nav-tabs">
-          <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
-          <button class="nav-tab" onclick="showSection('records')">Records</button>
-          <button class="nav-tab" onclick="showSection('analytics')">Analytics</button>
-          <button class="nav-tab" onclick="showSection('search')">Search</button>
-        </div>
-        <div class="topbar-right">
-          <div class="toggle-theme">
-            <span>☀️</span>
-            <div class="toggle-switch" id="theme-toggle-mobile" onclick="toggleTheme()"></div>
-            <span>🌙</span>
-          </div>
-          <button class="btn-icon" onclick="showExportModal()">⬇ Export</button>
-          <button class="btn-primary" onclick="openEntryModal()">＋ New Entry</button>
-        </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="showSection('records')">Records</button>
+      <button class="nav-tab" onclick="showSection('analytics')">Analytics</button>
+      <button class="nav-tab" onclick="showSection('search')">Search</button>
+    </div>
+    <div class="topbar-right">
+      <div class="toggle-theme">
+        <span>☀️</span>
+        <div class="toggle-switch" id="theme-toggle" onclick="toggleTheme()"></div>
+        <span>🌙</span>
       </div>
+      <button class="btn-icon" onclick="showExportModal()">⬇ Export</button>
+      <button class="btn-primary" onclick="openEntryModal()">＋ New Entry</button>
+    </div>
+  </div>
 
   <div class="main">
     <!-- DASHBOARD -->
@@ -536,32 +457,6 @@ tbody tr:last-child td { border: none; }
     </div>
   </div>
 </div>
-    </div><!-- end app-content -->
-  </div><!-- end app-layout -->
-
-  <!-- MOBILE BOTTOM NAV -->
-  <div class="bottom-nav">
-    <button class="bottom-nav-item active" id="bn-dashboard" onclick="showSection('dashboard')">
-      <span class="bnav-icon">📊</span>
-      <span>Dashboard</span>
-    </button>
-    <button class="bottom-nav-item" id="bn-records" onclick="showSection('records')">
-      <span class="bnav-icon">📋</span>
-      <span>Records</span>
-    </button>
-    <button class="bottom-nav-fab" onclick="openEntryModal()">
-      <div class="fab-circle">＋</div>
-      <span>New</span>
-    </button>
-    <button class="bottom-nav-item" id="bn-analytics" onclick="showSection('analytics')">
-      <span class="bnav-icon">📈</span>
-      <span>Analytics</span>
-    </button>
-    <button class="bottom-nav-item" id="bn-search" onclick="showSection('search')">
-      <span class="bnav-icon">🔍</span>
-      <span>Search</span>
-    </button>
-  </div>
 
 <!-- ENTRY MODAL -->
 <div class="modal-bg" id="entry-modal">
@@ -634,6 +529,30 @@ tbody tr:last-child td { border: none; }
 
 <!-- EDIT MODAL (reuses entry modal logic) -->
 <div class="toast" id="toast"></div>
+
+<!-- MOBILE BOTTOM NAV — outside #app so it never disappears -->
+<div class="bottom-nav">
+  <button class="bottom-nav-item active" id="bn-dashboard" onclick="showSection('dashboard')">
+    <span class="bnav-icon">📊</span>
+    <span>Dashboard</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-records" onclick="showSection('records')">
+    <span class="bnav-icon">📋</span>
+    <span>Records</span>
+  </button>
+  <button class="bottom-nav-fab" onclick="openEntryModal()">
+    <div class="fab-circle">＋</div>
+    <span class="fab-label">New</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-analytics" onclick="showSection('analytics')">
+    <span class="bnav-icon">📈</span>
+    <span>Analytics</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-search" onclick="showSection('search')">
+    <span class="bnav-icon">🔍</span>
+    <span>Search</span>
+  </button>
+</div>
 
 <script>
 // ============================================================
@@ -1981,12 +1900,13 @@ function exportPDF() {
 function showSection(name) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.sidebar-item').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.bottom-nav-item').forEach(t=>t.classList.remove('active'));
-  document.getElementById('section-'+name).classList.add('active');
-  // Update sidebar
-  const sbEl = document.getElementById('sb-'+name);
-  if (sbEl) sbEl.classList.add('active');
+  const sec = document.getElementById('section-'+name);
+  if (sec) sec.classList.add('active');
+  // Update top nav tabs
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    if (t.textContent.toLowerCase().includes(name)) t.classList.add('active');
+  });
   // Update bottom nav
   const bnEl = document.getElementById('bn-'+name);
   if (bnEl) bnEl.classList.add('active');
@@ -2003,19 +1923,13 @@ function loadTheme() {
   const saved = localStorage.getItem('pt-theme') || 'light';
   if (saved==='dark') {
     document.documentElement.setAttribute('data-theme','dark');
-    const t1 = document.getElementById('theme-toggle');
-    const t2 = document.getElementById('theme-toggle-mobile');
-    if(t1) t1.classList.add('on');
-    if(t2) t2.classList.add('on');
+    document.querySelectorAll('.toggle-switch').forEach(t=>t.classList.add('on'));
   }
 }
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme')==='dark';
   document.documentElement.setAttribute('data-theme', isDark?'light':'dark');
-  const t1 = document.getElementById('theme-toggle');
-  const t2 = document.getElementById('theme-toggle-mobile');
-  if(t1) t1.classList.toggle('on', !isDark);
-  if(t2) t2.classList.toggle('on', !isDark);
+  document.querySelectorAll('.toggle-switch').forEach(t=>t.classList.toggle('on',!isDark));
   localStorage.setItem('pt-theme', isDark?'light':'dark');
   renderAll();
 }
