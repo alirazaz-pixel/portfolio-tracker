@@ -216,6 +216,12 @@ tbody tr:last-child td { border: none; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 /* Chart containers */
 .chart-mobile-wrap { position: relative; height: 240px; }
+/* HIDE CHARTS ON MOBILE - show only tables */
+@media (max-width: 900px) {
+  .chart-mobile-wrap { display: none !important; }
+  .analytics-desktop-only { display: none !important; }
+  #growth-chart-wrap { display: none !important; }
+}
 
 /* =============================================
    MOBILE — must be at END to override desktop
@@ -335,7 +341,7 @@ tbody tr:last-child td { border: none; }
           <div class="card-title">Daily profit trend — last 14 days
             <span style="font-size:11px;color:var(--text3);font-weight:400">gross change per day</span>
           </div>
-          <div style="position:relative;height:200px;margin-bottom:8px"><canvas id="trend-chart" style="touch-action:pan-y" role="img" aria-label="Daily profit trend chart"></canvas></div>
+          <div class="chart-mobile-wrap" style="height:200px;margin-bottom:8px"><canvas id="trend-chart" style="touch-action:pan-y" role="img" aria-label="Daily profit trend chart"></canvas></div>
           <div id="daily-trend"></div>
         </div>
         <div class="card">
@@ -346,7 +352,7 @@ tbody tr:last-child td { border: none; }
       <div class="two-col">
         <div class="card">
           <div class="card-title">Portfolio growth</div>
-          <div style="position:relative;height:220px"><canvas id="growth-chart" style="touch-action:pan-y"></canvas></div>
+          <div class="chart-mobile-wrap" style="height:220px"><canvas id="growth-chart" style="touch-action:pan-y"></canvas></div>
         </div>
         <div class="card">
           <div class="card-title">Redemption breakdown (FIFO)</div>
@@ -407,28 +413,34 @@ tbody tr:last-child td { border: none; }
     </div>
 
     <!-- ANALYTICS -->
-    <div id="section-analytics" class="section" style="touch-action:pan-y;-webkit-overflow-scrolling:touch;">
+    <div id="section-analytics" class="section">
+
+      <!-- Metrics row -->
       <div class="metric-grid" style="margin-bottom:20px" id="analytics-metrics"></div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">Month-on-month summary</div>
-          <div class="table-wrap">
-            <table class="month-table" id="mom-table"></table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">
-            Monthly chart
-            <div class="chart-tabs" id="chart-tabs">
-              <div class="chart-tab active" onclick="switchMomChart('profit',this)">Profit</div>
-              <div class="chart-tab" onclick="switchMomChart('invested',this)">Invested</div>
-              <div class="chart-tab" onclick="switchMomChart('cgt',this)">CGT</div>
-            </div>
-          </div>
-          <div class="chart-mobile-wrap"><canvas id="mom-chart" style="touch-action:pan-y;pointer-events:none"></canvas></div>
+
+      <!-- Row 1: MoM table (always shown) + chart (desktop only) -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Month-on-month summary</div>
+        <div class="table-wrap">
+          <table class="month-table" id="mom-table"></table>
         </div>
       </div>
-      <div class="two-col">
+
+      <!-- MoM Chart - desktop only -->
+      <div class="card analytics-desktop-only" style="margin-bottom:16px">
+        <div class="card-title">
+          Monthly chart
+          <div class="chart-tabs" id="chart-tabs">
+            <div class="chart-tab active" onclick="switchMomChart('profit',this)">Profit</div>
+            <div class="chart-tab" onclick="switchMomChart('invested',this)">Invested</div>
+            <div class="chart-tab" onclick="switchMomChart('cgt',this)">CGT</div>
+          </div>
+        </div>
+        <div style="position:relative;height:240px"><canvas id="mom-chart"></canvas></div>
+      </div>
+
+      <!-- Row 2: CGT + Returns side by side -->
+      <div class="two-col" style="margin-bottom:16px">
         <div class="card">
           <div class="card-title">Per-fund CGT breakdown</div>
           <div id="cgt-breakdown"></div>
@@ -439,14 +451,18 @@ tbody tr:last-child td { border: none; }
         </div>
       </div>
 
-      <!-- Monthly annualised return chart -->
-      <div class="card" style="margin-bottom:20px">
+      <!-- Monthly return table (always shown) -->
+      <div class="card" style="margin-bottom:16px">
         <div class="card-title">Monthly annualised return
           <span style="font-size:11px;color:var(--text3);font-weight:400">— auto-updates each month</span>
         </div>
-        <div class="chart-mobile-wrap"><canvas id="monthly-return-chart" style="touch-action:pan-y;pointer-events:none" role="img" aria-label="Monthly annualised return chart"></canvas></div>
-        <div id="monthly-return-table" style="margin-top:14px;overflow-x:auto"></div>
+        <!-- Chart desktop only -->
+        <div class="analytics-desktop-only" style="position:relative;height:260px;margin-bottom:14px">
+          <canvas id="monthly-return-chart" role="img" aria-label="Monthly annualised return chart"></canvas>
+        </div>
+        <div id="monthly-return-table" style="overflow-x:auto"></div>
       </div>
+
     </div>
 
     <!-- SEARCH -->
@@ -718,7 +734,9 @@ function renderAll() {
   // Only render analytics if that section is currently visible
   const analyticsSection = document.getElementById('section-analytics');
   if (analyticsSection && analyticsSection.classList.contains('active')) {
-    renderAnalytics(sorted);
+    setTimeout(() => {
+      try { renderAnalytics(sorted); } catch(e) { console.warn('Analytics error:', e); }
+    }, 50);
   }
 }
 
@@ -1952,21 +1970,33 @@ function exportPDF() {
 }
 
 function showSection(name) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.bottom-nav-item').forEach(t=>t.classList.remove('active'));
-  const sec = document.getElementById('section-'+name);
-  if (sec) sec.classList.add('active');
-  // Update top nav tabs
-  document.querySelectorAll('.nav-tab').forEach(t=>{
-    if (t.textContent.toLowerCase().includes(name)) t.classList.add('active');
-  });
-  // Update bottom nav
-  const bnEl = document.getElementById('bn-'+name);
-  if (bnEl) bnEl.classList.add('active');
+  try {
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav-item').forEach(t=>t.classList.remove('active'));
+    const sec = document.getElementById('section-'+name);
+    if (sec) sec.classList.add('active');
+    // Update top nav tabs
+    document.querySelectorAll('.nav-tab').forEach(t=>{
+      if (t.textContent.toLowerCase().includes(name)) t.classList.add('active');
+    });
+    // Update bottom nav - always do this last so it never fails
+    const bnEl = document.getElementById('bn-'+name);
+    if (bnEl) bnEl.classList.add('active');
+  } catch(e) {
+    console.warn('showSection error:', e);
+  }
+  // Run analytics render AFTER section switch, in separate try-catch
+  // so any chart error CANNOT affect navigation or bottom nav
   if (name==='analytics') {
-    const sorted = [...allRecords].sort((a,b)=>a.date.localeCompare(b.date));
-    renderAnalytics(sorted);
+    setTimeout(() => {
+      try {
+        const sorted = [...allRecords].sort((a,b)=>a.date.localeCompare(b.date));
+        renderAnalytics(sorted);
+      } catch(e) {
+        console.warn('Analytics render error:', e);
+      }
+    }, 50);
   }
 }
 
