@@ -1470,10 +1470,18 @@ function updateCalcPreview() {
       <div class="calc-item"><div class="cl">Net change</div><div class="cv ${colorClass(netChange)}" style="font-size:15px;font-weight:700">${netChange<0?'('+fmt(Math.abs(netChange))+')':fmtSigned(netChange)}</div></div>`;
   } else if (selectedTxType === 'Redemption' && last) {
     const redeemAmt = Math.abs(grossChange);
-    const avProfit = last.cumProfit || 0;
-    const fromP = Math.min(redeemAmt, avProfit);
+    // Use recalculated profit pool for preview too
+    const sortedForPreview = [...allRecords].sort((a,b)=>a.date<b.date?-1:1);
+    let previewProfit = 0;
+    sortedForPreview.forEach(r => {
+      if (r.entryType==='Profit Update'&&r.profitTracking) previewProfit += (r.change||0)-(r.totalCGT||0);
+      if (r.entryType==='Redemption') previewProfit -= (r.fromProfit||0);
+    });
+    previewProfit = Math.max(0, Math.round(previewProfit));
+    const fromP = Math.min(redeemAmt, previewProfit);
     const fromC = redeemAmt - fromP;
     previewHTML += `
+      <div class="calc-item"><div class="cl">Available profit</div><div class="cv up">${fmt(previewProfit)}</div></div>
       <div class="calc-item"><div class="cl">From profit</div><div class="cv up">${fmt(fromP)}</div></div>
       <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fromC>0?'('+fmt(fromC)+')':'—'}</div></div>`;
   }
@@ -1489,19 +1497,49 @@ async function saveEntry() {
   const totalCGT = Math.round((v.hblCGT + v.ublCGT + v.mcbCGT) * 100) / 100;
   const profitTracking = (v.date >= '2026-05-14');
 
-  // FIFO redemption calc
+  // Calculate correct profit pool from scratch using all existing records
+  // This ensures FIFO always uses the true recalculated profit, not Excel imported values
+  const sortedRecords = [...allRecords].sort((a,b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (a.rowNum||0) - (b.rowNum||0);
+  });
+  // Filter out the record being edited if editing
+  const recordsForCalc = editingId 
+    ? sortedRecords.filter(r => r.id !== editingId)
+    : sortedRecords;
+  
+  // Recalculate true cumulative profit and capital up to last record
+  let calcProfit = 0;
+  let calcCapital = 12297409; // base capital before profit tracking (row 30)
+  recordsForCalc.forEach(r => {
+    if (r.entryType === 'Profit Update' && r.profitTracking) {
+      calcProfit += (r.change||0) - (r.totalCGT||0);
+    }
+    if (r.entryType === 'New Investment' && r.profitTracking) {
+      calcCapital += Math.abs(r.amountInOut||0);
+    }
+    if (r.entryType === 'Redemption') {
+      // Use stored fromProfit/fromCapital for past records
+      calcProfit -= (r.fromProfit||0);
+      calcCapital -= (r.fromCapital||0);
+    }
+  });
+  calcProfit = Math.round(calcProfit * 100) / 100;
+  calcCapital = Math.round(calcCapital);
+
+  // FIFO redemption calc using recalculated profit pool
   let fromProfit = 0, fromCapital = 0;
   if (selectedTxType === 'Redemption' && last) {
     const redeemAmt = Math.abs(grossChange);
-    const avProfit = last.cumProfit || 0;
+    const avProfit = Math.max(0, calcProfit); // never allow negative profit pool
     fromProfit = Math.min(redeemAmt, avProfit);
     fromCapital = redeemAmt - fromProfit;
   }
 
-  // Cumulative calcs
-  let cumCapital = last ? last.cumCapital : 0;
-  let cumProfit = last ? last.cumProfit : 0;
-  if (selectedTxType === 'New Investment') cumCapital += (v.amountInOut || grossChange);
+  // Cumulative calcs using recalculated values
+  let cumCapital = calcCapital;
+  let cumProfit = calcProfit;
+  if (selectedTxType === 'New Investment') cumCapital += Math.abs(grossChange);
   if (selectedTxType === 'Redemption') {
     cumProfit -= fromProfit;
     cumCapital -= fromCapital;
@@ -1538,12 +1576,20 @@ async function saveEntry() {
 }
 
 function showConfirmModal(entry, fromP, fromC, prevProfit) {
+  // Recalculate available profit for confirm modal
+  const sortedForConfirm = [...allRecords].sort((a,b)=>a.date<b.date?-1:1);
+  let confirmProfit = 0;
+  sortedForConfirm.forEach(r => {
+    if (r.entryType==='Profit Update'&&r.profitTracking) confirmProfit += (r.change||0)-(r.totalCGT||0);
+    if (r.entryType==='Redemption') confirmProfit -= (r.fromProfit||0);
+  });
+  confirmProfit = Math.max(0, Math.round(confirmProfit));
   document.getElementById('confirm-details').innerHTML = `
     <div class="confirm-row"><span>Redemption amount</span><span class="dn">${fmt(Math.abs(entry.change))}</span></div>
-    <div class="confirm-row"><span>Available profit pool</span><span class="up">${fmt(prevProfit)}</span></div>
+    <div class="confirm-row"><span>Available profit pool</span><span class="up">${fmt(confirmProfit)}</span></div>
     <div class="confirm-row"><span>Taken from profit (first)</span><span class="up">${fmt(fromP)}</span></div>
     <div class="confirm-row"><span>Taken from capital (after)</span><span class="dn">${fmt(fromC)}</span></div>
-    <div class="confirm-row"><span>Remaining profit pool</span><span>${fmt(prevProfit - fromP)}</span></div>`;
+    <div class="confirm-row"><span>Remaining profit pool</span><span>${fmt(Math.max(0, confirmProfit - fromP))}</span></div>`;
   closeEntryModal();
   document.getElementById('confirm-modal').classList.add('open');
 }
@@ -2019,9 +2065,53 @@ function toggleTheme() {
 }
 
 // ============================================================
+// FIX TODAY'S REDEMPTION RECORD (21 Jun 2026)
+// The FIFO split was wrong - using Excel profit instead of recalculated
+// ============================================================
+async function fixRedemptionRecord() {
+  if (!db) return;
+  try {
+    // Find the 21 Jun redemption record
+    const snap = await db.collection('records')
+      .where('date', '==', '2026-06-21')
+      .where('entryType', '==', 'Redemption')
+      .get();
+    
+    if (snap.empty) { console.log('No 21 Jun redemption found'); return; }
+    
+    // Correct values
+    const correctFromProfit = 121589;
+    const correctFromCapital = 7328411; // 7,450,000 - 121,589
+    const correctCumCapital = 5290790;  // 12,619,201 - 7,328,411
+    const correctCumProfit = 0;         // 121,589 - 121,589 = 0
+    
+    snap.forEach(async doc => {
+      const data = doc.data();
+      // Only fix if still has wrong values
+      if (data.fromProfit === 695394) {
+        await db.collection('records').doc(doc.id).update({
+          fromProfit: correctFromProfit,
+          fromCapital: correctFromCapital,
+          cumCapital: correctCumCapital,
+          cumProfit: correctCumProfit
+        });
+        console.log('✅ Fixed 21 Jun redemption record');
+        showToast('✅ Redemption record corrected');
+      }
+    });
+  } catch(e) {
+    console.warn('Fix redemption error:', e);
+  }
+}
+
+// ============================================================
 // BOOT
 // ============================================================
-window.onload = initFirebase;
+window.onload = async function() {
+  await initFirebase();
+  // Run one-time fix after data loads
+  setTimeout(fixRedemptionRecord, 3000);
+};
 </script>
 </body>
 </html>
