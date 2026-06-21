@@ -2071,31 +2071,24 @@ function toggleTheme() {
 async function fixRedemptionRecord() {
   if (!db) return;
   try {
-    // Find the 21 Jun redemption record
-    const snap = await db.collection('records')
+    // Fix Jun 21 redemption - correct FIFO split
+    // Profit available at Jun 21 = PKR 71,589
+    // (57,760 profit at Jun 8, minus 50,000 redeemed, plus 63,829 earned Jun 8-19)
+    const snap21 = await db.collection('records')
       .where('date', '==', '2026-06-21')
       .where('entryType', '==', 'Redemption')
       .get();
-    
-    if (snap.empty) { console.log('No 21 Jun redemption found'); return; }
-    
-    // Correct values
-    const correctFromProfit = 121589;
-    const correctFromCapital = 7328411; // 7,450,000 - 121,589
-    const correctCumCapital = 5290790;  // 12,619,201 - 7,328,411
-    const correctCumProfit = 0;         // 121,589 - 121,589 = 0
-    
-    snap.forEach(async doc => {
+
+    snap21.forEach(async doc => {
       const data = doc.data();
-      // Only fix if still has wrong values
-      if (data.fromProfit === 695394) {
+      if (data.fromProfit !== 71589) {
         await db.collection('records').doc(doc.id).update({
-          fromProfit: correctFromProfit,
-          fromCapital: correctFromCapital,
-          cumCapital: correctCumCapital,
-          cumProfit: correctCumProfit
+          fromProfit: 71589,
+          fromCapital: 7378411,  // 7,450,000 - 71,589
+          cumCapital: 5240790,   // 12,619,201 - 7,378,411
+          cumProfit: 0
         });
-        console.log('✅ Fixed 21 Jun redemption record');
+        console.log('✅ Fixed 21 Jun redemption: fromProfit=71,589, fromCapital=7,378,411');
         showToast('✅ Redemption record corrected');
       }
     });
