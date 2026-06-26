@@ -842,7 +842,7 @@ function renderDashboard(sorted) {
   document.getElementById('metric-grid').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div><div class="sub up">↑ All time</div></div>
     <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
-    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
+    <div class="metric-card ${calcCumProfit < 0 ? 'loss' : 'profit'}"><div class="lbl">Cumulative profit</div><div class="val ${calcCumProfit < 0 ? 'dn' : 'up'}">${calcCumProfit < 0 ? '(' + fmt(Math.abs(calcCumProfit)) + ')' : fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
     <div class="metric-card">
       <div class="lbl">Annualised return</div>
@@ -852,7 +852,7 @@ function renderDashboard(sorted) {
     </div>
     <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
     <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
-    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${fmt(worstDay)}</div></div>`;
+    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${worstDay < 0 ? '(' + fmt(Math.abs(worstDay)) + ')' : fmt(worstDay)}</div></div>`;
 
   // Daily trend
   const trendDays = {};
@@ -1150,7 +1150,7 @@ function renderAnalytics(sorted) {
   const analyticsXirr = calcXIRR(sorted);
   document.getElementById('analytics-metrics').innerHTML = `
     <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div></div>
-    <div class="metric-card profit"><div class="lbl">Cumulative profit</div><div class="val up">${fmt(analyticsCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
+    <div class="metric-card ${analyticsCumProfit < 0 ? 'loss' : 'profit'}"><div class="lbl">Cumulative profit</div><div class="val ${analyticsCumProfit < 0 ? 'dn' : 'up'}">${analyticsCumProfit < 0 ? '(' + fmt(Math.abs(analyticsCumProfit)) + ')' : fmt(analyticsCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card"><div class="lbl">Total CGT</div><div class="val dn">${fmt(totalCGT)}</div></div>
     <div class="metric-card"><div class="lbl">Simple return</div><div class="val up">${analyticsSimpleReturn}%</div><div class="sub" style="color:var(--text3)">Profit ÷ capital</div></div>`;
 
