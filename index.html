@@ -1045,7 +1045,9 @@ function renderRecords() {
       <td>${fmt(r.ublBank)}</td>
       <td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">${(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}</span></td>
+      <td><span style="color:${r.entryType==='Transfer/Rebalance'?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
       <td class="dn">${r.mcbCGT>0?fmt(r.mcbCGT):'—'}</td>
@@ -1054,7 +1056,9 @@ function renderRecords() {
       <td class="up">${fmt(r.cumProfit)}</td>
       <td class="up">${r.fromProfit>0?fmt(r.fromProfit):'—'}</td>
       <td class="dn">${r.fromCapital>0?'('+fmt(r.fromCapital)+')':'—'}</td>
-      <td style="color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.notes||'—'}</td>
+      <td style="color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${
+        r.transferDetails ? '<span style="color:var(--blue);font-size:11px">' + r.transferDetails + '</span>' : (r.notes||'—')
+      }</td>
       <td style="white-space:nowrap">
         <button class="action-btn" onclick="openEditModal('${r.id}')" title="Edit">✏️</button>
         <button class="action-btn" onclick="openDeleteModal('${r.id}')" title="Delete">🗑️</button>
@@ -1278,7 +1282,9 @@ function renderSearch() {
       <td>${fmt(r.hblFund)}</td><td>${fmt(r.ublFund)}</td><td>${fmt(r.mcbFund)}</td>
       <td>${fmt(r.ublBank)}</td><td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">${(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}</span></td>
+      <td><span style="color:${r.entryType==='Transfer/Rebalance'?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
       <td class="dn">${r.mcbCGT>0?fmt(r.mcbCGT):'—'}</td>
@@ -1485,6 +1491,36 @@ function updateCalcPreview() {
       <div class="calc-item"><div class="cl">From profit</div><div class="cv up">${fmt(fromP)}</div></div>
       <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fromC>0?'('+fmt(fromC)+')':'—'}</div></div>`;
   }
+  // For Transfer/Rebalance - show what changed per fund
+  if (selectedTxType === 'Transfer/Rebalance' && last) {
+    const changes = [
+      ['HBL Fund', v.hblFund - (last.hblFund||0), '#2563eb'],
+      ['UBL Fund', v.ublFund - (last.ublFund||0), '#16a34a'],
+      ['MCB Fund', v.mcbFund - (last.mcbFund||0), '#d97706'],
+      ['UBL Bank', v.ublBank - (last.ublBank||0), '#7c3aed'],
+      ['Cash',     v.cash    - (last.cash||0),    '#64748b'],
+    ].filter(([,diff]) => diff !== 0);
+
+    if (changes.length) {
+      previewHTML += `<div style="grid-column:1/-1;margin-top:4px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Transfer breakdown</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+      changes.forEach(([name, diff, color]) => {
+        const sign = diff > 0 ? '+' : '';
+        const col = diff > 0 ? '#16a34a' : '#dc2626';
+        previewHTML += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px">
+          <span style="color:var(--text3)">${name}: </span>
+          <span style="font-weight:600;color:${col}">${sign}${fmt(Math.abs(diff))}</span>
+        </div>`;
+      });
+      previewHTML += `</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">Total portfolio unchanged — only moving between funds</div>
+      </div>`;
+    } else {
+      previewHTML += `<div style="grid-column:1/-1;font-size:12px;color:var(--text3)">No changes detected — enter new fund values to see transfer breakdown</div>`;
+    }
+  }
+
   document.getElementById('calc-preview').innerHTML = previewHTML;
 }
 
@@ -1563,7 +1599,23 @@ async function saveEntry() {
     cumCapital: Math.round(cumCapital), cumProfit: Math.round(cumProfit),
     profitTracking,
     notes: v.notes,
-    rowNum: Date.now()
+    rowNum: Date.now(),
+    // For Transfer/Rebalance: store what changed per fund
+    transferDetails: selectedTxType === 'Transfer/Rebalance' && last ? (() => {
+      const changes = [];
+      const fields = [
+        ['HBL Fund', v.hblFund, last.hblFund||0],
+        ['UBL Fund', v.ublFund, last.ublFund||0],
+        ['MCB Fund', v.mcbFund, last.mcbFund||0],
+        ['UBL Bank', v.ublBank, last.ublBank||0],
+        ['Cash',     v.cash,    last.cash||0],
+      ];
+      fields.forEach(([name, cur, prev]) => {
+        const diff = Math.round(cur - prev);
+        if (diff !== 0) changes.push(`${name}: ${diff > 0 ? '+' : ''}PKR ${Math.abs(diff).toLocaleString('en-PK')}`);
+      });
+      return changes.join(' | ');
+    })() : null
   };
 
   if (selectedTxType === 'Redemption') {
