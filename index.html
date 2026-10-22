@@ -1513,6 +1513,7 @@ function updateCalcPreview() {
       ['MCB Fund', v.mcbFund - (last.mcbFund||0), '#d97706'],
       ['UBL Bank', v.ublBank - (last.ublBank||0), '#7c3aed'],
       ['Cash',     v.cash    - (last.cash||0),    '#64748b'],
+      ['Binance',  (v.binanceFund||0) - (last.binanceFund||0), '#f59e0b'],
     ].filter(([,diff]) => diff !== 0);
 
     if (changes.length) {
