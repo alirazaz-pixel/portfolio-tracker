@@ -799,7 +799,6 @@ function renderDashboard(sorted) {
   const worstDay = Math.min(...allProfitChanges, 0);
   const bestDayRecord = profitDays.find(r=>(r.netChange||0)===bestDay);
   const worstDayRecord = profitDays.find(r=>(r.netChange||0)===worstDay);
-  const fmtDate = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]; return `${+dd} ${mo} ${y}`; };
   // Recalculate cumulative profit correctly from scratch
   let calcCumProfit = 0;
   sorted.forEach(r => {
