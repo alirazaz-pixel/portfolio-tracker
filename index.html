@@ -797,6 +797,9 @@ function renderDashboard(sorted) {
   const allProfitChanges = profitDays.map(r=>r.netChange||0);
   const bestDay = Math.max(...allProfitChanges, 0);
   const worstDay = Math.min(...allProfitChanges, 0);
+  const bestDayRecord = profitDays.find(r=>(r.netChange||0)===bestDay);
+  const worstDayRecord = profitDays.find(r=>(r.netChange||0)===worstDay);
+  const fmtDate = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]; return `${+dd} ${mo} ${y}`; };
   // Recalculate cumulative profit correctly from scratch
   let calcCumProfit = 0;
   sorted.forEach(r => {
@@ -857,7 +860,7 @@ function renderDashboard(sorted) {
     </div>
     <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
     <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
-    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub dn">Worst: ${worstDay < 0 ? '(' + fmt(Math.abs(worstDay)) + ')' : fmt(worstDay)}</div></div>`;
+    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub" style="color:var(--text3)">${bestDayRecord?fmtDate(bestDayRecord.date):''}</div><div class="sub dn" style="margin-top:4px">Worst: ${worstDay < 0 ? '(' + fmt(Math.abs(worstDay)) + ')' : fmt(worstDay)}${worstDayRecord?' · '+fmtDate(worstDayRecord.date):''}</div></div>`;
 
   // Daily trend
   const trendDays = {};
