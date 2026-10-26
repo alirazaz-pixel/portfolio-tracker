@@ -1414,7 +1414,7 @@ function buildEntryForm(existing) {
 }
 
 function getFormValues() {
-  const g = id => { const el=document.getElementById(id); return el?parseFloat(el.value)||0:0; };
+  const g = id => { const el=document.getElementById(id); return el?parseFloat((el.value||'').replace(/,/g,''))||0:0; };
   const gs = id => { const el=document.getElementById(id); return el?el.value:''; };
   return {
     date: gs('f-date') || today(),
