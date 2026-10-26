@@ -1432,7 +1432,10 @@ function updateCalcPreview() {
   const newTotal = v.hblFund + v.ublFund + v.mcbFund + (v.binanceFund||0) + v.ublBank + v.cash;
   // DEBUG - remove later
   const dbgEl = document.getElementById('debug-out');
-  if(dbgEl) dbgEl.textContent = `hbl=${v.hblFund} ubl=${v.ublFund} mcb=${v.mcbFund} bin=${v.binanceFund} ublb=${v.ublBank} cash=${v.cash} total=${newTotal} last=${last?last.total:'null'}`;
+  if(dbgEl) {
+    const raw = id => { const e=document.getElementById(id); return e ? JSON.stringify(e.value) : 'missing'; };
+    dbgEl.textContent = `RAW: hbl=${raw('f-hbl')} ubl=${raw('f-ubl')} bin=${raw('f-binance')} ublb=${raw('f-ublbank')} cash=${raw('f-cash')} | parsed: hbl=${v.hblFund} total=${newTotal} last=${last?last.total:'null'}`;
+  }
   const prevTotal = last ? last.total : 0;
   const grossChange = newTotal - prevTotal;
 
