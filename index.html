@@ -1361,15 +1361,15 @@ function buildEntryForm(existing) {
       <label style="display:flex;justify-content:space-between;align-items:center">
         <span>${label} (₨)</span>
         ${prev ? `<span style="font-size:11px;color:var(--text3)">prev: <span style="font-weight:600;color:var(--text2)">${prev.toLocaleString('en-PK')}</span>
-          <button type="button" onclick="document.getElementById('${id}').value=${prev};updateCalcPreview()" 
+          <button type="button" onclick="var el=document.getElementById('${id}');el.value='${prev}';el.dispatchEvent(new Event('input'));updateCalcPreview()"
             style="margin-left:6px;font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);cursor:pointer;color:var(--text2)">
             Use prev
           </button>
         </span>` : ''}
       </label>
       <div style="position:relative">
-        <input type="number" id="${id}" value="${val||''}" placeholder="${prev ? prev.toLocaleString('en-PK') : '0'}" 
-          oninput="updateCalcPreview()" 
+        <input type="text" inputmode="numeric" id="${id}" value="${val||''}" placeholder="${prev ? prev.toLocaleString('en-PK') : '0'}"
+          oninput="updateCalcPreview()"
           style="width:100%;padding-right:${prev?'80px':'12px'}">
         ${prev && selectedTxType==='Profit Update' ? `
           <div id="${id}-diff" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;pointer-events:none"></div>
