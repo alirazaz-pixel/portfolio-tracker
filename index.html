@@ -1409,7 +1409,7 @@ function buildEntryForm(existing) {
       <input type="text" id="f-notes" value="${vals.notes||''}" placeholder="e.g. end of day update">
     </div>`;
 
-  document.getElementById('entry-form').innerHTML = commonFields + cgtFields + notesField;
+  document.getElementById('entry-form').innerHTML = commonFields + cgtFields + notesField + `<div id="debug-out" style="grid-column:1/-1;font-size:10px;color:red;word-break:break-all;padding:4px;background:#fff3cd;border-radius:4px"></div>`;
   updateCalcPreview();
 }
 
@@ -1430,6 +1430,9 @@ function updateCalcPreview() {
   const v = getFormValues();
   const last = getLastRecord();
   const newTotal = v.hblFund + v.ublFund + v.mcbFund + (v.binanceFund||0) + v.ublBank + v.cash;
+  // DEBUG - remove later
+  const dbgEl = document.getElementById('debug-out');
+  if(dbgEl) dbgEl.textContent = `hbl=${v.hblFund} ubl=${v.ublFund} mcb=${v.mcbFund} bin=${v.binanceFund} ublb=${v.ublBank} cash=${v.cash} total=${newTotal} last=${last?last.total:'null'}`;
   const prevTotal = last ? last.total : 0;
   const grossChange = newTotal - prevTotal;
 
