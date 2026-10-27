@@ -1345,7 +1345,15 @@ function getLastRecord() {
 function buildEntryForm(existing) {
   const last = getLastRecord();
   const isEdit = !!existing;
-  const vals = existing || {};
+  // For new Profit Update entries, pre-fill with last record values so NEW TOTAL calculates correctly
+  const vals = existing || (selectedTxType === 'Profit Update' && last ? {
+    hblFund: last.hblFund||0,
+    ublFund: last.ublFund||0,
+    mcbFund: last.mcbFund||0,
+    binanceFund: last.binanceFund||0,
+    ublBank: last.ublBank||0,
+    cash: last.cash||0
+  } : {});
   const hint = f => last ? `prev: ${fmt(last[f]||0)}` : '';
 
   // Previous values for hints and autocomplete
