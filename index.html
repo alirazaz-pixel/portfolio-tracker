@@ -1345,8 +1345,8 @@ function getLastRecord() {
 function buildEntryForm(existing) {
   const last = getLastRecord();
   const isEdit = !!existing;
-  // For new Profit Update entries, pre-fill with last record values so NEW TOTAL calculates correctly
-  const vals = existing || (selectedTxType === 'Profit Update' && last ? {
+  // For new entries, pre-fill with last record values so NEW TOTAL calculates correctly
+  const vals = existing || (last ? {
     hblFund: last.hblFund||0,
     ublFund: last.ublFund||0,
     mcbFund: last.mcbFund||0,
