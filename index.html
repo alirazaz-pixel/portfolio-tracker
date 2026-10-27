@@ -847,7 +847,7 @@ function renderDashboard(sorted) {
   const annualisedReturn = avgCapital > 0 ? ((netProfitForReturn / avgCapital) * (365 / profitDaysCount) * 100).toFixed(2) : '0.00';
 
   document.getElementById('metric-grid').innerHTML = `
-    <div class="metric-card"><div class="lbl">Net worth</div><div class="val">${fmt(last.total)}</div><div class="sub up">↑ All time</div></div>
+    <div class="metric-card"><div class="lbl">Net worth (after CGT)</div><div class="val">${fmt(last.total - totalCGT)}</div><div class="sub" style="color:var(--text3)">Gross: ${fmt(last.total)}</div></div>
     <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
     <div class="metric-card ${calcCumProfit < 0 ? 'loss' : 'profit'}"><div class="lbl">Cumulative profit</div><div class="val ${calcCumProfit < 0 ? 'dn' : 'up'}">${calcCumProfit < 0 ? '(' + fmt(Math.abs(calcCumProfit)) + ')' : fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
     <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
@@ -2034,7 +2034,7 @@ function exportPDF() {
 
     <div class="section-title">Portfolio Summary</div>
     <div class="grid4">
-      <div class="kpi"><div class="lbl">Net worth</div><div class="val">PKR ${Math.round(last.total||0).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Net worth (after CGT)</div><div class="val">PKR ${Math.round((last.total||0) - totalCGT).toLocaleString('en-PK')}</div><div style="font-size:9px;color:#888;margin-top:2px">Gross: PKR ${Math.round(last.total||0).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Capital invested</div><div class="val">PKR ${Math.round(last.cumCapital||0).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Net profit earned</div><div class="val green">PKR ${Math.round(netProfit).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Remaining profit</div><div class="val green">PKR ${Math.round(remainingProfit).toLocaleString('en-PK')}</div></div>
