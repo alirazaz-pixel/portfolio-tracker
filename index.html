@@ -152,7 +152,7 @@ tbody tr:last-child td { border: none; }
 .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 28px; width: 600px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
 .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
 .modal .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 22px; }
-.tx-type-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 20px; }
+.tx-type-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 20px; }
 .tx-type-btn { padding: 12px 8px; border: 1.5px solid var(--border); border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface); }
 .tx-type-btn:hover { border-color: var(--blue); }
 .tx-type-btn.active { border-color: var(--blue); background: var(--blue-light); }
@@ -245,7 +245,7 @@ tbody tr:last-child td { border: none; }
   .day-banner { grid-template-columns: 1fr 1fr; }
   .two-col, .three-col, .analytics-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
-  .tx-type-grid { grid-template-columns: repeat(2,1fr); }
+  .tx-type-grid { grid-template-columns: repeat(3,1fr); }
   .nav-tabs { display: none !important; }
   .topbar { padding: 0 12px; }
   /* Override desktop .main padding */
@@ -490,6 +490,7 @@ tbody tr:last-child td { border: none; }
               <option>New Investment</option>
               <option>Redemption</option>
               <option>Transfer/Rebalance</option>
+              <option>CGT Settlement</option>
             </select>
           </div>
         </div>
@@ -532,6 +533,9 @@ tbody tr:last-child td { border: none; }
       </div>
       <div class="tx-type-btn" onclick="selectTxType('Transfer/Rebalance')" id="tx-Transfer/Rebalance">
         <div class="ico">🔄</div><div class="lbl">Transfer / rebalance</div><div class="desc">Move between funds</div>
+      </div>
+      <div class="tx-type-btn" onclick="selectTxType('CGT Settlement')" id="tx-CGT Settlement">
+        <div class="ico">🏦</div><div class="lbl">CGT settlement</div><div class="desc">Tax deducted from fund</div>
       </div>
 
     </div>
@@ -664,7 +668,8 @@ const colorClass = n => n > 0 ? 'up' : n < 0 ? 'dn' : 'neutral';
 const arrow = n => n > 0 ? '↑' : n < 0 ? '↓' : '→';
 const badgeClass = t => ({
   'Profit Update':'badge-profit','New Investment':'badge-invest',
-  'Redemption':'badge-redeem','Transfer/Rebalance':'badge-transfer'
+  'Redemption':'badge-redeem','Transfer/Rebalance':'badge-transfer',
+  'CGT Settlement':'badge-transfer'
 }[t] || 'badge-profit');
 
 function showToast(msg, duration=2800) {
@@ -1016,7 +1021,7 @@ function renderRecords() {
   const to = document.getElementById('filter-to')?.value||'';
 
   // Type chips
-  const types = ['All','Profit Update','New Investment','Redemption','Transfer/Rebalance'];
+  const types = ['All','Profit Update','New Investment','Redemption','Transfer/Rebalance','CGT Settlement'];
   document.getElementById('type-chips').innerHTML = types.map(t =>
     `<div class="chip ${(activeTypeFilter===t||(t==='All'&&!activeTypeFilter))?'active':''}" onclick="setTypeFilter('${t}')">${t}</div>`
   ).join('');
@@ -1054,8 +1059,8 @@ function renderRecords() {
       <td>${fmt(r.ublBank)}</td>
       <td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${r.entryType==='Transfer/Rebalance'?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
-        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
       </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
@@ -1292,8 +1297,8 @@ function renderSearch() {
       <td>${r.binanceFund>0?fmt(r.binanceFund):'—'}</td>
       <td>${fmt(r.ublBank)}</td><td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${r.entryType==='Transfer/Rebalance'?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
-        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
       </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
@@ -1328,7 +1333,8 @@ function selectTxType(type) {
     'Profit Update': '📈 Enter the current value of each fund. Net day change and CGT are calculated automatically.',
     'New Investment': '💰 Enter the new fund values after adding capital. Amount added = new total minus previous total.',
     'Redemption': '💸 Enter the new fund values after withdrawing. FIFO: profit is consumed first, then capital.',
-    'Transfer/Rebalance': '🔄 Moving money between funds — no profit or loss is recorded. Total portfolio stays the same.'
+    'Transfer/Rebalance': '🔄 Moving money between funds — no profit or loss is recorded. Total portfolio stays the same.',
+    'CGT Settlement': '🏦 Enter fund values after CGT was physically deducted. No profit or loss recorded — tax liability cleared.'
   };
   document.getElementById('entry-info-banner').textContent = infos[type];
   buildEntryForm(editingId ? allRecords.find(r=>r.id===editingId) : null);
@@ -1515,6 +1521,36 @@ function updateCalcPreview() {
       <div class="calc-item"><div class="cl">From profit</div><div class="cv up">${fmt(fromP)}</div></div>
       <div class="calc-item"><div class="cl">From capital</div><div class="cv dn">${fromC>0?'('+fmt(fromC)+')':'—'}</div></div>`;
   }
+  // For CGT Settlement - show funds that changed (no P&L impact)
+  if (selectedTxType === 'CGT Settlement' && last) {
+    const changes = [
+      ['HBL Fund', v.hblFund - (last.hblFund||0), '#2563eb'],
+      ['UBL Fund', v.ublFund - (last.ublFund||0), '#16a34a'],
+      ['MCB Fund', v.mcbFund - (last.mcbFund||0), '#d97706'],
+      ['UBL Bank', v.ublBank - (last.ublBank||0), '#7c3aed'],
+      ['Cash',     v.cash    - (last.cash||0),    '#64748b'],
+      ['Binance',  (v.binanceFund||0) - (last.binanceFund||0), '#f59e0b'],
+    ].filter(([,diff]) => diff !== 0);
+
+    if (changes.length) {
+      previewHTML += `<div style="grid-column:1/-1;margin-top:4px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">CGT deducted from funds</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+      changes.forEach(([name, diff]) => {
+        const sign = diff > 0 ? '+' : '';
+        const col = diff > 0 ? '#16a34a' : '#dc2626';
+        previewHTML += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px">
+          <span style="color:var(--text3)">${name}: </span>
+          <span style="font-weight:600;color:${col}">${sign}${fmt(Math.abs(diff))}</span>
+        </div>`;
+      });
+      previewHTML += `</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px">🏦 CGT settled — no profit or loss recorded. Cumulative profit unchanged.</div>
+      </div>`;
+    } else {
+      previewHTML += `<div style="grid-column:1/-1;font-size:12px;color:var(--text3)">No changes detected — enter new fund values after CGT deduction</div>`;
+    }
+  }
   // For Transfer/Rebalance - show what changed per fund
   if (selectedTxType === 'Transfer/Rebalance' && last) {
     const changes = [
@@ -1609,6 +1645,7 @@ async function saveEntry() {
     const netChange = grossChange - totalCGT;
     cumProfit += netChange;
   }
+  // CGT Settlement: fund values drop by tax amount, but no P&L impact — cumProfit/cumCapital unchanged
 
   const entry = {
     date: v.date,
@@ -1617,10 +1654,11 @@ async function saveEntry() {
     binanceFund: v.binanceFund||0,
     ublBank: v.ublBank, cash: v.cash,
     hblCGT: v.hblCGT, ublCGT: v.ublCGT, mcbCGT: v.mcbCGT,
-    totalCGT, total: newTotal,
+    totalCGT: selectedTxType==='CGT Settlement' ? 0 : totalCGT,
+    total: newTotal,
     change: grossChange,
-    netChange: selectedTxType==='Profit Update' ? Math.round((grossChange-totalCGT)*100)/100 : grossChange,
-    amountInOut: selectedTxType !== 'Profit Update' ? grossChange : null,
+    netChange: selectedTxType==='Profit Update' ? Math.round((grossChange-totalCGT)*100)/100 : selectedTxType==='CGT Settlement' ? 0 : grossChange,
+    amountInOut: (selectedTxType !== 'Profit Update' && selectedTxType !== 'CGT Settlement') ? grossChange : null,
     fromProfit, fromCapital,
     cumCapital: Math.round(cumCapital), cumProfit: Math.round(cumProfit),
     profitTracking,
@@ -1967,7 +2005,7 @@ function exportPDF() {
   let recordRows = '';
   filtered.forEach(r=>{
     const net=(r.change||0)-(r.totalCGT||0);
-    const typeColors={'Profit Update':'#2563eb','New Investment':'#16a34a','Redemption':'#dc2626','Transfer/Rebalance':'#d97706'};
+    const typeColors={'Profit Update':'#2563eb','New Investment':'#16a34a','Redemption':'#dc2626','Transfer/Rebalance':'#d97706','CGT Settlement':'#d97706'};
     recordRows+=`<tr>
       <td>${fmtDate(r.date)}</td>
       <td><span style="color:${typeColors[r.entryType]||'#333'};font-weight:600;font-size:9px">${r.entryType}</span></td>
