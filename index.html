@@ -582,6 +582,7 @@ tbody tr:last-child td { border: none; }
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
       <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportExcel()">📊 &nbsp; Excel (.xlsx) — matches original format</button>
       <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportPDF()">📄 &nbsp; PDF — summary report</button>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportFullBackup()">🛡️ &nbsp; Full backup (JSON) — exact copy for restore</button>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="document.getElementById('export-modal').classList.remove('open')">Close</button>
@@ -1936,6 +1937,44 @@ function exportExcel() {
   XLSX.writeFile(wb, `Portfolio_${today()}.xlsx`);
   showToast('📊 Excel exported!');
   document.getElementById('export-modal').classList.remove('open');
+}
+
+// ============================================================
+// FULL BACKUP (JSON) — exact copy of every Firestore record
+// Read-only: this function never writes to Firebase.
+// ============================================================
+async function exportFullBackup() {
+  try {
+    showToast('⏳ Preparing backup...');
+    let records;
+    if (db) {
+      const snap = await db.collection('records').get({ source: 'server' });
+      records = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+    } else {
+      records = allRecords.map(r => { const { id, ...data } = r; return { id, data }; });
+    }
+    const backup = {
+      app: 'Portfolio Tracker',
+      backupVersion: 1,
+      firebaseProject: FIREBASE_CONFIG.projectId,
+      collection: 'records',
+      exportedAt: new Date().toISOString(),
+      recordCount: records.length,
+      records
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    a.href = url;
+    a.download = `Portfolio_FullBackup_${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast(`🛡️ Backup saved — ${records.length} records`, 4000);
+    document.getElementById('export-modal').classList.remove('open');
+  } catch(e) {
+    showToast('❌ Backup failed: ' + e.message, 5000);
+  }
 }
 
 function exportPDF() {
