@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
   --bg: #f7f8fa;
@@ -305,6 +306,82 @@ tbody tr:last-child td { border: none; }
 @media (min-width: 901px) {
   .bottom-nav { display: none !important; }
 }
+/* ===== Release 3 ===== */
+.r3-gap { margin-bottom: 20px; }
+.r3-note { font-size: 12px; color: var(--text2); }
+.r3-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.r3-alert { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 12px 16px; margin-bottom: 16px; background: var(--amber-light); border: 1px solid #fcd34d; border-radius: 12px; font-size: 13px; color: #78350f; }
+[data-theme="dark"] .r3-alert { color: #fde68a; border-color: #92400e; }
+.r3-alert ul { margin: 4px 0 0 18px; padding: 0; }
+.r3-hero { background: #0f172a; color: #f8fafc; border-radius: 16px; padding: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.r3-hero-lbl { font-size: 13px; color: #cbd5e1; font-weight: 500; }
+.r3-hero-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-top: 6px; }
+.r3-hero-val { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.r3-hero-sub { font-size: 13px; color: #cbd5e1; margin-top: 6px; }
+.r3-chip { padding: 4px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; background: #dcfce7; color: #166534; }
+.r3-chip.neg { background: #fee2e2; color: #991b1b; }
+#h-spark { display: block; margin-top: 10px; }
+.r3-hero-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; flex: 1 1 560px; min-width: 0; }
+.r3-tile { padding: 14px; border-radius: 12px; background: #1e293b; text-align: left; border: 1px solid transparent; color: inherit; font: inherit; }
+.r3-tile-btn { cursor: pointer; border-color: #22c55e; background: #052e16; }
+.r3-tile-btn:hover { background: #064e3b; }
+.r3-tl { font-size: 12px; color: #cbd5e1; display: flex; justify-content: space-between; gap: 6px; }
+.r3-tv { font-size: 18px; font-weight: 700; margin-top: 4px; }
+.r3-ts { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.r3-red { color: #fca5a5 !important; } .r3-green { color: #86efac !important; }
+.r3-tile .up { color: #86efac !important; } .r3-tile .dn { color: #fca5a5 !important; }
+.r3-perf { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.r3-perf .metric-card .val { font-size: 19px; }
+.r3-seg { display: flex; gap: 4px; padding: 3px; background: var(--surface2); border-radius: 10px; }
+.r3-seg button { min-height: 32px; padding: 0 12px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; background: transparent; color: var(--text2); }
+.r3-seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.r3-chart { position: relative; touch-action: pan-y; }
+.r3-alloc { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; }
+.r3-legend { flex: 1 1 160px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.r3-legend div { display: flex; align-items: center; gap: 8px; }
+.r3-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.r3-bar { height: 8px; background: var(--surface2); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.r3-bar > div { height: 100%; border-radius: 4px; }
+.r3-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+.r3-table th { text-align: right; font-size: 11px; font-weight: 600; color: var(--text2); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; text-transform: none; letter-spacing: 0; }
+.r3-table td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; font-size: 13px; }
+.r3-table th:first-child, .r3-table td:first-child, .r3-table .l { text-align: left; }
+.r3-table tr.amc td { background: var(--surface2); font-weight: 700; }
+.r3-table tr.fund { cursor: pointer; }
+.r3-table tr.fund:hover td { background: var(--blue-light); }
+.r3-table tr.muted td { color: var(--text3); }
+.r3-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.r3-tag.mm { background: #dbeafe; color: #1e40af; } .r3-tag.inc { background: #ccfbf1; color: #115e59; } .r3-tag.stk { background: #ede9fe; color: #5b21b6; } .r3-tag.oth { background: var(--surface2); color: var(--text2); }
+.r3-planner { border: 2px solid var(--blue); }
+.r3-amts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
+.r3-amts button { min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.r3-amts button.on { background: #0f172a; color: #fff; border-color: #0f172a; font-weight: 600; }
+.r3-amts input { width: 130px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; }
+.r3-act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.r3-act:last-child { border-bottom: none; }
+.r3-act .t { flex: 1 1 200px; } .r3-act .d { width: 90px; color: var(--text2); font-size: 12px; } .r3-act .a { width: 120px; text-align: right; font-weight: 600; }
+.r3-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 13px; }
+.r3-btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.r3-amc-block { border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.r3-kv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 10px 0; }
+.r3-kv div { background: var(--surface2); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--text2); }
+.r3-kv b { display: block; font-size: 15px; color: var(--text); margin-top: 2px; }
+.r3-ok { color: var(--green); font-weight: 600; }
+.r3-warn { color: var(--amber); font-weight: 600; }
+.r3-list { font-size: 12px; margin: 6px 0 0 16px; }
+.r3-split { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; font-size: 13px; }
+.r3-split input { width: 120px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+@media (max-width: 900px) {
+  .r3-hero-tiles, .r3-perf, .r3-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .r3-hero-val { font-size: 30px; }
+  .r3-chart canvas { pointer-events: none !important; touch-action: pan-y !important; }
+  .nav-tabs { display: flex !important; overflow-x: auto; position: absolute; top: 56px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 6px 8px; z-index: 99; }
+  .topbar { position: relative; }
+  .main { padding-top: 60px !important; }
+  .toggle-theme, .topbar-date { display: none; }
+  .topbar-logo { font-size: 15px; white-space: nowrap; }
+  .topbar-right .btn-icon, .topbar-right .btn-primary { padding: 6px 10px; font-size: 12px; }
+}
 </style>
 </head>
 <body>
@@ -318,9 +395,11 @@ tbody tr:last-child td { border: none; }
     </div>
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showSection('dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="showSection('funds')">Funds</button>
       <button class="nav-tab" onclick="showSection('records')">Records</button>
       <button class="nav-tab" onclick="showSection('analytics')">Analytics</button>
       <button class="nav-tab" onclick="showSection('search')">Search</button>
+      <button class="nav-tab" onclick="showSection('statements')">Statements</button>
     </div>
     <div class="topbar-right">
       <div class="toggle-theme">
@@ -334,34 +413,89 @@ tbody tr:last-child td { border: none; }
   </div>
 
   <div class="main">
-    <!-- DASHBOARD -->
+    <!-- DASHBOARD (Release 3) -->
     <div id="section-dashboard" class="section active">
-      <div class="day-banner" id="day-banner"></div>
-      <div class="metric-grid" id="metric-grid"></div>
-      <div class="two-col">
+      <div id="r3-alerts"></div>
+
+      <section class="r3-hero">
+        <div class="r3-hero-main">
+          <div class="r3-hero-lbl">Net worth</div>
+          <div class="r3-hero-row"><div class="r3-hero-val" id="h-networth">—</div><div class="r3-chip" id="h-today">—</div></div>
+          <div class="r3-hero-sub" id="h-sub">—</div>
+          <canvas id="h-spark" width="260" height="44" aria-label="Cumulative profit" role="img"></canvas>
+        </div>
+        <div class="r3-hero-tiles">
+          <div class="r3-tile"><div class="r3-tl">Capital invested</div><div class="r3-tv" id="h-capital">—</div></div>
+          <button type="button" class="r3-tile r3-tile-btn" id="h-profit-btn" onclick="r3ToggleBreakdown()" aria-expanded="false">
+            <div class="r3-tl">Total profit <span id="h-chev">▼</span></div><div class="r3-tv up" id="h-profit">—</div><div class="r3-ts" id="h-profit-hint">Click for fund breakdown</div>
+          </button>
+          <div class="r3-tile"><div class="r3-tl">CGT paid (statements)</div><div class="r3-tv r3-red" id="h-cgt">—</div><div class="r3-ts" id="h-cgt-sub"></div></div>
+          <div class="r3-tile"><div class="r3-tl">Annualised return</div><div class="r3-tv r3-green" id="h-ann">—</div><div class="r3-ts" id="h-ann-sub"></div></div>
+        </div>
+      </section>
+
+      <section class="card r3-gap" id="r3-breakdown" style="display:none">
+        <div class="r3-head"><div class="card-title" style="margin:0">Profit by AMC and fund</div><div class="r3-note">Units, NAV and value from statements · P/L uses FIFO cost of units still held</div></div>
+        <div class="table-wrap"><table class="r3-table" id="r3-breakdown-table"></table></div>
+      </section>
+
+      <section class="r3-perf r3-gap" id="r3-perf"></section>
+
+      <div class="two-col r3-gap">
         <div class="card">
-          <div class="card-title">Daily profit trend — last 14 days
-            <span style="font-size:11px;color:var(--text3);font-weight:400">before CGT · investments, redemptions &amp; transfers excluded · ◆ transaction day</span>
-          </div>
-          <div class="chart-mobile-wrap" style="height:200px;margin-bottom:8px"><canvas id="trend-chart" style="touch-action:pan-y" role="img" aria-label="Daily profit trend chart"></canvas></div>
-          <div id="daily-trend"></div>
+          <div class="r3-head"><div><div class="card-title" style="margin:0">Daily profit</div><div class="r3-note">Before CGT · investments, redemptions and transfers excluded · darker bar = transaction day</div></div>
+            <div class="r3-seg" id="r3-range"></div></div>
+          <div class="r3-chart" style="height:230px"><canvas id="r3-daily"></canvas></div>
+          <div class="r3-note" id="r3-daily-sum" style="margin-top:8px"></div>
         </div>
         <div class="card">
-          <div class="card-title">Fund allocation</div>
-          <div id="fund-allocation"></div>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-title">Portfolio growth</div>
-          <div class="chart-mobile-wrap" style="height:220px"><canvas id="growth-chart" style="touch-action:pan-y"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-title">Redemption breakdown (FIFO)</div>
-          <div id="redemption-breakdown"></div>
+          <div class="card-title">Allocation</div>
+          <div class="r3-alloc"><div class="r3-chart" style="height:180px;width:180px"><canvas id="r3-donut"></canvas></div><div id="r3-alloc-legend" class="r3-legend"></div></div>
         </div>
       </div>
 
+      <div class="two-col r3-gap">
+        <div class="card">
+          <div class="card-title">Net worth vs capital <span class="r3-note" style="font-weight:400">month-end</span></div>
+          <div class="r3-chart" style="height:230px"><canvas id="r3-growth"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">By asset type</div>
+          <div id="r3-types"></div>
+        </div>
+      </div>
+
+      <div class="card r3-gap">
+        <div class="card-title">Monthly profit and CGT <span class="r3-note" style="font-weight:400">profit before CGT from your records · CGT as deducted by the AMCs</span></div>
+        <div class="r3-chart" style="height:240px"><canvas id="r3-monthly"></canvas></div>
+      </div>
+
+      <section class="card r3-gap r3-planner" id="r3-planner"></section>
+
+      <div class="card r3-gap">
+        <div class="r3-head"><div class="card-title" style="margin:0">Recent activity</div><a href="#" onclick="showSection('records');return false" style="font-size:13px;font-weight:600">All records</a></div>
+        <div id="r3-activity"></div>
+      </div>
+    </div>
+
+    <!-- FUNDS -->
+    <div id="section-funds" class="section">
+      <div class="card r3-gap"><div class="r3-head"><div class="card-title" style="margin:0">Funds</div><div class="r3-note" id="r3-funds-asof"></div></div>
+        <div id="r3-funds"></div></div>
+      <div class="card r3-gap" id="r3-fund-detail" style="display:none"></div>
+    </div>
+
+    <!-- STATEMENTS -->
+    <div id="section-statements" class="section">
+      <div class="card r3-gap">
+        <div class="card-title">Upload statements</div>
+        <p class="r3-note" style="margin-bottom:12px">HBL, UBL or MCB statement PDFs. Several at once is fine. Nothing is saved until you confirm. Personal details (CNIC, address, bank accounts) are never stored.</p>
+        <label class="btn-primary" style="display:inline-flex;cursor:pointer">⬆ Choose PDF statements<input type="file" id="r3-file" accept="application/pdf" multiple style="display:none" onchange="r3HandleFiles(this.files)"></label>
+        <div id="r3-review" style="margin-top:16px"></div>
+      </div>
+      <div class="card r3-gap"><div class="card-title">Statement coverage</div><div id="r3-coverage"></div></div>
+      <div class="card r3-gap"><div class="card-title">Statements vs your records</div><div id="r3-recon"></div></div>
+      <div class="card r3-gap"><div class="card-title">Since 1 July 2025 (from statements)</div><div id="r3-history"></div></div>
     </div>
 
     <!-- RECORDS -->
@@ -599,21 +733,21 @@ tbody tr:last-child td { border: none; }
     <span class="bnav-icon">📊</span>
     <span>Dashboard</span>
   </button>
-  <button class="bottom-nav-item" id="bn-records" onclick="showSection('records')">
-    <span class="bnav-icon">📋</span>
-    <span>Records</span>
+  <button class="bottom-nav-item" id="bn-funds" onclick="showSection('funds')">
+    <span class="bnav-icon">💼</span>
+    <span>Funds</span>
   </button>
   <button class="bottom-nav-fab" onclick="openEntryModal()">
     <div class="fab-circle">＋</div>
     <span class="fab-label">New</span>
   </button>
-  <button class="bottom-nav-item" id="bn-analytics" onclick="showSection('analytics')">
-    <span class="bnav-icon">📈</span>
-    <span>Analytics</span>
+  <button class="bottom-nav-item" id="bn-records" onclick="showSection('records')">
+    <span class="bnav-icon">📋</span>
+    <span>Records</span>
   </button>
-  <button class="bottom-nav-item" id="bn-search" onclick="showSection('search')">
-    <span class="bnav-icon">🔍</span>
-    <span>Search</span>
+  <button class="bottom-nav-item" id="bn-statements" onclick="showSection('statements')">
+    <span class="bnav-icon">📄</span>
+    <span>Statements</span>
   </button>
 </div>
 
@@ -769,6 +903,7 @@ async function initApp() {
       allRecords = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderAll();
     });
+    r3InitData();
   } else {
     renderAll();
   }
@@ -807,264 +942,7 @@ function renderAll() {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function renderDashboard(sorted) {
-  if (!sorted.length) return;
-  const last = sorted[sorted.length - 1];
-
-  // Find yesterday's last profit update
-  // Use the last profit update date as "today" (in case entries are made days later)
-  const profitDays = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking);
-  const lastProfitDate = profitDays.length ? profitDays[profitDays.length-1].date : null;
-  const todayStr = lastProfitDate || last.date;
-  const todayUpdates = profitDays.filter(r => r.date === todayStr);
-  const prevDayUpdates = profitDays.filter(r => r.date < todayStr);
-  // Net change = gross change minus CGT (already stored as netChange in profitTracking entries)
-  const dailyMap = computeDaily(sorted);
-  const dailyDates = Object.keys(dailyMap).sort();
-  const todayKey = dailyDates[dailyDates.length-1];
-  const prevKey = dailyDates[dailyDates.length-2];
-  const todayNet = todayKey ? dailyMap[todayKey].gross : 0;   // today's profit, before CGT
-  const todayCGT = todayKey ? dailyMap[todayKey].cgt : 0;
-  const prevLast = prevKey ? { date: prevKey } : null;
-  const prevNet = prevKey ? dailyMap[prevKey].gross : null;
-
-  // Banner
-  const diff = prevNet !== null ? todayNet - prevNet : null;
-  document.getElementById('day-banner').innerHTML = `
-    <div class="metric-card highlight">
-      <div class="lbl">Latest day profit${todayKey ? ' · ' + fmtDate(todayKey).slice(0,6) : ''}</div>
-      <div class="val" style="color:${todayNet>=0?'#16a34a':'#dc2626'}">${todayNet<0?'('+fmt(Math.abs(todayNet))+')':(arrow(todayNet)+' '+fmt(Math.abs(todayNet)))}</div>
-      <div class="sub">${diff !== null ? `vs last: <span style="font-weight:600;color:${diff>=0?'#16a34a':'#dc2626'}">${diff>=0?'+'+fmt(diff):'('+fmt(Math.abs(diff))+')'}</span> ${diff>=0?'↑':'↓'}` : 'First entry'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="lbl">Last day change</div>
-      <div class="val" style="color:${prevNet===null?'var(--text3)':prevNet>=0?'#16a34a':'#dc2626'}">${prevNet!==null?(prevNet<0?'('+fmt(Math.abs(prevNet))+')':(arrow(prevNet)+' '+fmt(Math.abs(prevNet)))):'—'}</div>
-      <div class="sub">${prevLast ? fmtDate(prevLast.date) : 'No prior data'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="lbl">CGT charged today</div>
-      <div class="val dn">${fmt(todayCGT)}</div>
-      <div class="sub">Shown separately from profit</div>
-    </div>
-    <div class="metric-card">
-      <div class="lbl">Total CGT paid (all time)</div>
-      <div class="val dn">${fmt(sorted.reduce((s,r)=>s+(r.totalCGT||0),0))}</div>
-      <div class="sub">Since inception</div>
-    </div>`;
-
-  // Metrics — profit only from profitTracking entries (row 32 / May 14 onwards)
-  const totalCGT = sorted.reduce((s,r)=>s+(r.totalCGT||0),0);
-  const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
-  const totFromProfit = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
-  const totFromCapital = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromCapital||0),0);
-  const allProfitChanges = profitDays.map(r=>r.netChange||0);
-  const bestDay = Math.max(...allProfitChanges, 0);
-  const worstDay = Math.min(...allProfitChanges, 0);
-  const bestDayRecord = profitDays.find(r=>(r.netChange||0)===bestDay);
-  const worstDayRecord = profitDays.find(r=>(r.netChange||0)===worstDay);
-  // Recalculate cumulative profit correctly from scratch
-  let calcCumProfit = 0;
-  sorted.forEach(r => {
-    if (r.entryType === 'Profit Update' && r.profitTracking) {
-      // gross change minus CGT = net profit for this entry
-      const entryNet = (r.change || 0) - (r.totalCGT || 0);
-      calcCumProfit += entryNet;
-    }
-    if (r.entryType === 'Redemption') {
-      calcCumProfit -= (r.fromProfit || 0);
-    }
-  });
-  calcCumProfit = Math.round(calcCumProfit * 100) / 100;
-  // Recalculate capital: base (before row 32) + all investments after - capital redemptions
-  const baseCapital = 12297409; // total at row 30 (last pre-profit entry)
-  let calcCumCapital = baseCapital;
-  sorted.forEach(r => {
-    if (r.entryType === 'New Investment' && r.profitTracking) {
-      calcCumCapital += (r.amountInOut || 0);
-    }
-    if (r.entryType === 'Redemption' && r.profitTracking) {
-      calcCumCapital -= (r.fromCapital || 0);
-    }
-  });
-  calcCumCapital = Math.round(calcCumCapital);
-  // Annualised return using weighted average capital from profit tracking start (May 14)
-  const profitStartDate = new Date('2026-05-14T00:00:00');
-  const lastEntryDate = sorted.length ? new Date(sorted[sorted.length-1].date+'T00:00:00') : new Date();
-  const firstEntryDate = sorted.length ? new Date(sorted[0].date+'T00:00:00') : new Date();
-  const daysSinceStart = Math.max(1, Math.round((lastEntryDate - firstEntryDate) / (1000*60*60*24)));
-  const profitDaysCount = Math.max(1, Math.round((lastEntryDate - profitStartDate) / (1000*60*60*24)));
-  // Net profit for return = gross profit updates - CGT (redemptions from profit NOT deducted)
-  const netProfitForReturn = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking)
-    .reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
-  // Weighted average capital from profit tracking start
-  const profitSorted = sorted.filter(r => r.date >= '2026-05-14');
-  let weightedCapSum = 0;
-  for (let i = 0; i < profitSorted.length; i++) {
-    const r = profitSorted[i];
-    const nextDate = i+1 < profitSorted.length ? new Date(profitSorted[i+1].date+'T00:00:00') : lastEntryDate;
-    const daysHeld = Math.max(0, (nextDate - new Date(r.date+'T00:00:00')) / (1000*60*60*24));
-    weightedCapSum += (r.cumCapital||0) * daysHeld;
-  }
-  const avgCapital = profitDaysCount > 0 ? weightedCapSum / profitDaysCount : calcCumCapital;
-  const simpleReturn = avgCapital > 0 ? ((netProfitForReturn / avgCapital) * 100).toFixed(4) : '0.0000';
-  const annualisedReturn = avgCapital > 0 ? ((netProfitForReturn / avgCapital) * (365 / profitDaysCount) * 100).toFixed(2) : '0.00';
-
-  document.getElementById('metric-grid').innerHTML = `
-    <div class="metric-card"><div class="lbl">Net worth (after CGT)</div><div class="val">${fmt(last.total - totalCGT)}</div><div class="sub" style="color:var(--text3)">Gross: ${fmt(last.total)}</div></div>
-    <div class="metric-card"><div class="lbl">Capital invested</div><div class="val">${fmt(calcCumCapital)}</div><div class="sub" style="color:var(--text3)">Net of redemptions</div></div>
-    <div class="metric-card ${calcCumProfit < 0 ? 'loss' : 'profit'}"><div class="lbl">Cumulative profit</div><div class="val ${calcCumProfit < 0 ? 'dn' : 'up'}">${calcCumProfit < 0 ? '(' + fmt(Math.abs(calcCumProfit)) + ')' : fmt(calcCumProfit)}</div><div class="sub" style="color:var(--text3)">Net of CGT, from 14 May</div></div>
-    <div class="metric-card loss"><div class="lbl">Total CGT paid</div><div class="val dn">${fmt(totalCGT)}</div><div class="sub" style="color:var(--text3)">Since inception</div></div>
-    <div class="metric-card">
-      <div class="lbl">Annualised return</div>
-      <div class="val up">${annualisedReturn}% p.a.</div>
-      <div class="sub" style="color:var(--text3)">Return over ${profitDaysCount} days: ${simpleReturn}%</div>
-      <div class="sub" style="color:var(--text3);margin-top:2px">Profit from 14 May · Invested ${daysSinceStart} days</div>
-    </div>
-    <div class="metric-card"><div class="lbl">Total redeemed</div><div class="val">${fmt(totRed)}</div><div class="sub dn">${fmt(totFromCapital)} from capital</div></div>
-    <div class="metric-card"><div class="lbl">Redeemed from profit</div><div class="val up">${fmt(totFromProfit)}</div><div class="sub" style="color:var(--text3)">FIFO — profit first</div></div>
-    <div class="metric-card"><div class="lbl">Best single day</div><div class="val up">${fmt(bestDay)}</div><div class="sub" style="color:var(--text3)">${bestDayRecord?fmtDate(bestDayRecord.date):''}</div><div class="sub dn" style="margin-top:4px">Worst: ${worstDay < 0 ? '(' + fmt(Math.abs(worstDay)) + ')' : fmt(worstDay)}${worstDayRecord?' · '+fmtDate(worstDayRecord.date):''}</div></div>`;
-
-  // Daily trend
-  const trendDays = {};
-  Object.entries(dailyMap).forEach(([d, v]) => { trendDays[d] = { net: v.gross, cgt: v.cgt, tx: v.tx }; });
-  const trendEntries = Object.entries(trendDays).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,14).reverse();
-  const maxAbs = Math.max(...trendEntries.map(([,v])=>Math.abs(v.net)), 1);
-  let trendHTML = '';
-  for (let i = 0; i < trendEntries.length; i++) {
-    const [date, v] = trendEntries[i];
-    const prev = i > 0 ? trendEntries[i-1][1].net : null;
-    const dir = prev === null ? '' : v.net >= prev ? '<span class="up">↑</span>' : '<span class="dn">↓</span>';
-    const pct = Math.round((Math.abs(v.net)/maxAbs)*100);
-    const color = v.net >= 0 ? '#16a34a' : '#dc2626';
-    trendHTML += `<div class="trend-row">
-      <div class="trend-date">${fmtDate(date).slice(0,6)}${v.tx ? ' ◆' : ''}</div>
-      <div class="trend-bar-wrap"><div class="trend-bar" style="width:${pct}%;background:${color}"></div></div>
-      <div class="trend-val ${colorClass(v.net)}">${fmtSigned(v.net)}</div>
-      <div class="trend-arrow">${dir}</div>
-    </div>`;
-  }
-  document.getElementById('daily-trend').innerHTML = trendHTML || '<div class="empty-state"><p>No profit updates yet</p></div>';
-
-  // Chart.js trend chart
-  const trendCanvas = document.getElementById('trend-chart');
-  if (trendCanvas && trendEntries.length) {
-    try {
-  if (window._trendChart) window._trendChart.destroy();
-    const trendColors = trendEntries.map(([,v]) => v.net >= 0 ? '#16a34a' : '#dc2626');
-    window._trendChart = new Chart(trendCanvas, {
-      type: 'bar',
-      data: {
-        labels: trendEntries.map(([d]) => fmtDate(d).slice(0,6)),
-        datasets: [{
-          label: 'Day change',
-          data: trendEntries.map(([,v]) => v.net),
-          backgroundColor: trendColors,
-          borderRadius: 4,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => {
-            const v = ctx.raw;
-            return v < 0 ? ' (' + fmt(Math.abs(v)) + ')' : ' +' + fmt(v);
-          }}}
-        },
-        scales: {
-          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-          y: { grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { font: { size: 10 }, callback: v => v < 0 ? '('+fmt(Math.abs(v))+')' : fmt(v) } }
-        }
-      }
-    });
-  } catch(e) { console.warn('Trend chart error:', e); }
-  }
-
-  // Fund allocation
-  const total = last.total || 1;
-  const funds = [
-    {name:'HBL Fund', val:last.hblFund||0, color:'#2563eb'},
-    {name:'UBL Fund', val:last.ublFund||0, color:'#16a34a'},
-    {name:'MCB Fund', val:last.mcbFund||0, color:'#d97706'},
-    {name:'Binance', val:last.binanceFund||0, color:'#f59e0b'},
-    {name:'UBL Bank', val:last.ublBank||0, color:'#7c3aed'},
-    {name:'Cash', val:last.cash||0, color:'#64748b'},
-  ];
-  let allocHTML = funds.map(f => {
-    const pct = ((f.val/total)*100).toFixed(1);
-    return `<div class="fund-row">
-      <div class="fund-dot" style="background:${f.color}"></div>
-      <div class="fund-name">${f.name}</div>
-      <div class="fund-bar-wrap"><div class="fund-bar" style="width:${pct}%;background:${f.color}"></div></div>
-      <div class="fund-val">${fmt(f.val)}</div>
-      <div class="fund-pct" style="color:${f.color}">${pct}%</div>
-    </div>`;
-  }).join('') + `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--text3)">Total</span><strong>${fmt(last.total)}</strong></div>`;
-  document.getElementById('fund-allocation').innerHTML = allocHTML;
-
-  // Redemption breakdown
-  const grossProfit = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).reduce((s,r)=>s+(r.change||0),0);
-  document.getElementById('redemption-breakdown').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:0">
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2)">Gross profit earned</span>
-        <span style="font-weight:600;color:#16a34a">${fmt(grossProfit)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2)">CGT paid (15%)</span>
-        <span style="font-weight:600;color:#dc2626">(${fmt(totalCGT)})</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2)">Net profit earned</span>
-        <span style="font-weight:600;color:#16a34a">${fmt(grossProfit - totalCGT)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2)">Redeemed from profit</span>
-        <span style="font-weight:600;color:#dc2626">(${fmt(totFromProfit)})</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;padding:10px 0;border-bottom:1px solid var(--border);background:var(--surface2);margin:0 -4px;padding-left:4px;padding-right:4px;border-radius:6px;margin-top:4px">
-        <span style="font-weight:700">Remaining profit</span>
-        <span style="font-weight:700;color:#16a34a;font-size:16px">${fmt(calcCumProfit)}</span>
-      </div>
-      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)">
-          <span style="color:var(--text2)">Total redeemed</span><span style="font-weight:600">${fmt(totRed)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0">
-          <span style="color:var(--text2)">From capital</span>
-          <span style="font-weight:600;color:#dc2626">${totFromCapital>0?'('+fmt(totFromCapital)+')':'—'}</span>
-        </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:6px">FIFO: profit exhausted first, then capital</div>
-      </div>
-    </div>`;
-
-  // Growth chart
-  const growthLabels = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>fmtDate(r.date).slice(0,6));
-  const growthTotals = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.total);
-  const growthCapital = sorted.filter((_,i)=>i%3===0||i===sorted.length-1).map(r=>r.cumCapital);
-  try {
-  if (growthChart) growthChart.destroy();
-  growthChart = new Chart(document.getElementById('growth-chart'), {
-    type:'line',
-    data:{
-      labels: growthLabels,
-      datasets:[
-        {label:'Net worth', data:growthTotals, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', fill:true, tension:0.3, pointRadius:2},
-        {label:'Capital', data:growthCapital, borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,0.05)', fill:true, tension:0.3, pointRadius:2, borderDash:[4,3]}
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:true, labels:{font:{size:11}, boxWidth:12, padding:10}},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
-      scales:{
-        x:{ticks:{font:{size:10},maxRotation:45,autoSkip:true},grid:{display:false}},
-        y:{ticks:{font:{size:10},callback:v=>fmt(v)},grid:{color:'rgba(128,128,128,0.1)'}}
-      }
-    }
-  });
-  } catch(e) { console.warn('Growth chart error:', e); }
-}
+// renderDashboard is defined in the Release 3 script below
 
 // ============================================================
 // RECORDS
@@ -1209,13 +1087,14 @@ function renderAnalytics(sorted) {
   const analyticsProfitDays = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date('2026-05-14T00:00:00')) / (1000*60*60*24)));
   const analyticsDaysSinceStart = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date(sorted[0].date+'T00:00:00')) / (1000*60*60*24)));
   // Weighted average capital
+  const aRun = computeRunning(sorted);
   const aProfitSorted = sorted.filter(r=>r.date>='2026-05-14');
   const aLastDate = new Date(sorted[sorted.length-1].date+'T00:00:00');
   let aWeightedSum = 0;
   for (let i=0;i<aProfitSorted.length;i++) {
     const r=aProfitSorted[i];
     const nd = i+1<aProfitSorted.length ? new Date(aProfitSorted[i+1].date+'T00:00:00') : aLastDate;
-    aWeightedSum += (r.cumCapital||0) * Math.max(0,(nd-new Date(r.date+'T00:00:00'))/(1000*60*60*24));
+    aWeightedSum += ((aRun[r.id]||{}).capital ?? r.cumCapital ?? 0) * Math.max(0,(nd-new Date(r.date+'T00:00:00'))/(1000*60*60*24));
   }
   const aAvgCapital = aWeightedSum / analyticsProfitDays;
   const analyticsSimpleReturn = aAvgCapital > 0 ? ((analyticsNetProfitForReturn/aAvgCapital)*(365/analyticsProfitDays)*100).toFixed(2) : '0.00';
@@ -1280,7 +1159,7 @@ function renderAnalytics(sorted) {
         <div style="font-size:12px;color:var(--text3)">Time-weighted, accounts for timing of cash flows</div>
       </div>
       <div style="font-size:11px;color:var(--text3);padding:8px;background:var(--blue-light);border-radius:var(--radius)">
-        Capital = ${fmt(analyticsCumCapital)} &nbsp;|&nbsp; Net profit = ${fmt(analyticsCumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)} &nbsp;|&nbsp; ${daysSinceStart} days
+        Capital = ${fmt(analyticsCumCapital)} &nbsp;|&nbsp; Net profit = ${fmt(analyticsCumProfit)} &nbsp;|&nbsp; CGT paid = ${fmt(totalCGT)} &nbsp;|&nbsp; ${analyticsDaysSinceStart} days
       </div>
     </div>`;
 
@@ -1461,15 +1340,15 @@ function buildEntryForm(existing) {
 
   const cgtFields = selectedTxType === 'Profit Update' ? `
     <div class="form-group">
-      <label>HBL CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <label>HBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
       <input type="number" id="f-hblcgt" value="${vals.hblCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>UBL CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <label>UBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
       <input type="number" id="f-ublcgt" value="${vals.ublCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>MCB CGT (₨) <span style="color:#16a34a;font-size:11px">auto-calculated · editable</span></label>
+      <label>MCB CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
       <input type="number" id="f-mcbcgt" value="${vals.mcbCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>` : `<input type="hidden" id="f-hblcgt" value="0"><input type="hidden" id="f-ublcgt" value="0"><input type="hidden" id="f-mcbcgt" value="0">`;
 
@@ -1520,8 +1399,9 @@ function updateCalcPreview() {
     });
   }
 
-  // Auto-calculate CGT per fund (15% on gain only, no CGT on loss)
-  if (selectedTxType === 'Profit Update' && last) {
+  // Release 3: CGT is no longer estimated at 15% on gain days — the AMCs deduct it only at redemption/conversion,
+  // and the actual amounts come from statements. The fields stay editable (normally 0).
+  if (false && selectedTxType === 'Profit Update' && last) {
     const hblGain = Math.max(0, v.hblFund - (last.hblFund||0));
     const ublGain = Math.max(0, v.ublFund - (last.ublFund||0));
     const mcbGain = Math.max(0, v.mcbFund - (last.mcbFund||0));
@@ -1553,12 +1433,12 @@ function updateCalcPreview() {
       const mcbGain = Math.max(0, v.mcbFund - (last.mcbFund||0));
       const binanceGain = Math.max(0, (v.binanceFund||0) - (last.binanceFund||0));
       previewHTML += `
-        <div class="calc-item"><div class="cl">HBL gain/CGT</div><div class="cv" style="font-size:12px">${fmt(hblGain)} / ${fmt(Math.round(hblGain*0.15*100)/100)}</div></div>
-        <div class="calc-item"><div class="cl">UBL gain/CGT</div><div class="cv" style="font-size:12px">${fmt(ublGain)} / ${fmt(Math.round(ublGain*0.15*100)/100)}</div></div>
+        <div class="calc-item"><div class="cl">HBL change</div><div class="cv" style="font-size:12px">${fmtSigned(v.hblFund-(last.hblFund||0))}</div></div>
+        <div class="calc-item"><div class="cl">UBL change</div><div class="cv" style="font-size:12px">${fmtSigned(v.ublFund-(last.ublFund||0))}</div></div>
         ${binanceGain>0?`<div class="calc-item"><div class="cl">Binance gain</div><div class="cv up" style="font-size:12px">${fmt(binanceGain)} / <span style="color:var(--green)">No CGT</span></div></div>`:''}`;
     }
     previewHTML += `
-      <div class="calc-item"><div class="cl">Total CGT (15%)</div><div class="cv dn">(${fmt(totalCGT)})</div></div>
+      <div class="calc-item"><div class="cl">CGT entered</div><div class="cv dn">(${fmt(totalCGT)})</div></div>
       <div class="calc-item"><div class="cl">Net change</div><div class="cv ${colorClass(netChange)}" style="font-size:15px;font-weight:700">${netChange<0?'('+fmt(Math.abs(netChange))+')':fmtSigned(netChange)}</div></div>`;
   } else if (selectedTxType === 'Redemption' && last) {
     const redeemAmt = Math.abs(grossChange);
@@ -1801,6 +1681,7 @@ async function commitEntry(entry) {
       showToast('✅ Entry saved (demo mode)');
     }
     closeEntryModal();
+    if (typeof r3OnCommitted === 'function') r3OnCommitted(entry);
   } catch(e) {
     showToast('❌ Error saving: '+e.message);
   }
@@ -1857,14 +1738,15 @@ function renderMonthlyReturnChart(sorted) {
     let weightedSum = 0;
     // Get capital entries for this month from full sorted list
     const monthEntries = sorted.filter(r => r.date.startsWith(m));
+    const mRun = computeRunning(sorted);
     for (let i = 0; i < monthEntries.length; i++) {
       const r = monthEntries[i];
       const nextR = monthEntries[i+1];
       const nd = nextR ? new Date(nextR.date+'T00:00:00') : lastDate;
       const dHeld = Math.max(0, (nd - new Date(r.date+'T00:00:00')) / (1000*60*60*24));
-      weightedSum += (r.cumCapital||0) * dHeld;
+      weightedSum += ((mRun[r.id]||{}).capital ?? r.cumCapital ?? 0) * dHeld;
     }
-    const avgCap = days > 0 ? weightedSum / days : (entries[0].cumCapital||1);
+    const avgCap = days > 0 ? weightedSum / days : ((mRun[entries[0].id]||{}).capital || entries[0].cumCapital || 1);
     const annReturn = avgCap > 0 ? ((netProfit / avgCap) * (365 / days) * 100) : 0;
 
     results.push({
@@ -2014,6 +1896,10 @@ async function exportFullBackup() {
     if (db) {
       const snap = await db.collection('records').get({ source: 'server' });
       records = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+      var extra = {};
+      for (const c of ['stmt_events', 'stmt_imports', 'fund_meta', 'recon_log']) {
+        const sn = await db.collection(c).get({ source: 'server' }); extra[c] = sn.docs.map(d => ({ id: d.id, data: d.data() }));
+      }
     } else {
       records = allRecords.map(r => { const { id, ...data } = r; return { id, data }; });
     }
@@ -2024,7 +1910,8 @@ async function exportFullBackup() {
       collection: 'records',
       exportedAt: new Date().toISOString(),
       recordCount: records.length,
-      records
+      records,
+      collections: (typeof extra !== 'undefined') ? extra : {}
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -2034,7 +1921,7 @@ async function exportFullBackup() {
     a.download = `Portfolio_FullBackup_${stamp}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    showToast(`🛡️ Backup saved — ${records.length} records`, 4000);
+    showToast(`🛡️ Backup saved — ${records.length} records` + ((typeof extra !== 'undefined' && extra.stmt_events) ? `, ${extra.stmt_events.length} statement transactions` : ''), 4000);
     document.getElementById('export-modal').classList.remove('open');
   } catch(e) {
     showToast('❌ Backup failed: ' + e.message, 5000);
@@ -2252,6 +2139,9 @@ function showSection(name) {
   }
   // Run analytics render AFTER section switch, in separate try-catch
   // so any chart error CANNOT affect navigation or bottom nav
+  if (name==='funds') { try { r3RenderFunds(); } catch(e) { console.warn(e); } }
+  if (name==='statements') { try { r3RenderStatements(); } catch(e) { console.warn(e); } }
+  if (name==='dashboard') { try { renderDashboard(sortedAsc()); } catch(e) { console.warn(e); } }
   if (name==='analytics') {
     setTimeout(() => {
       try {
@@ -2329,6 +2219,871 @@ window.onload = async function() {
   // Run one-time fix after data loads
   setTimeout(fixRedemptionRecord, 3000);
 };
+</script>
+<script>
+// Shared: turn a PDF into text lines (works in browser with window.pdfjsLib, and in node for tests)
+async function pdfToLines(pdfjs, data) {
+  const doc = await pdfjs.getDocument({ data, disableFontFace: true, isEvalSupported: false }).promise;
+  const out = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const tc = await page.getTextContent();
+    const rows = [];
+    tc.items.forEach(it => {
+      const s = (it.str || '').trim(); if (!s) return;
+      const x = it.transform[4], y = it.transform[5];
+      let row = rows.find(r => Math.abs(r.y - y) < 2.5);
+      if (!row) { row = { y, items: [] }; rows.push(row); }
+      row.items.push({ x, s });
+    });
+    rows.sort((a, b) => b.y - a.y);
+    rows.forEach(r => { r.items.sort((a, b) => a.x - b.x); out.push(r.items.map(i => i.s).join(' ')); });
+  }
+  return out;
+}
+
+
+// ============================================================
+// STATEMENT PARSER — HBL, UBL (3 formats), MCB
+// Input: text lines from pdfToLines(). Output:
+// { amc, format, period:{from,to}, events:[...], closings:{fundKey:{units,nav,navDate,value}}, warnings:[] }
+// Event: { amc, fundKey, fundName, date, kind:'buy'|'sell'|'cgt'|'free', sub, units, nav, amount, balance }
+//   buy.amount = cost of units (net cash in);  sell.amount = gross value (units × NAV)
+//   cgt.amount = CGT deducted;  free = units received at zero cost
+// Personal details (CNIC, DOB, address, bank accounts) are never read.
+// ============================================================
+const STMT = (() => {
+  const MON = { JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12 };
+  const pad = n => String(n).padStart(2, '0');
+  const iso = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
+  const num = t => { if (t == null) return NaN; let s = String(t).replace(/[()\s,]/g, ''); if (s === '' || s === '-') return NaN;
+    const neg = /^\(.*\)$/.test(String(t).trim()) || s.startsWith('-'); s = s.replace(/^-/, ''); const v = parseFloat(s); return neg ? -v : v; };
+  const isNum = t => /^\(?\s*-?[\d,]*\.?\d+\s*\)?$/.test(t);
+  // 08-Jul-2025 | 16-NOV-26 | 23-09-2026 | 16 APR 2026
+  function dt(s) {
+    let m;
+    if ((m = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/))) { let y = +m[3]; if (y < 100) y += 2000; return iso(y, MON[m[2].toUpperCase()], +m[1]); }
+    if ((m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/))) return iso(+m[3], +m[2], +m[1]);
+    if ((m = s.match(/^([A-Za-z]{3})-(\d{1,2})-(\d{4})$/))) return iso(+m[3], MON[m[1].toUpperCase()], +m[2]);
+    return null;
+  }
+  function longDate(s) { // "Nov. 21, 2026" | "November 20, 2026" | "20 NOV 2026"
+    let m;
+    if ((m = s.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),\s*(\d{4})/))) return iso(+m[3], MON[m[1].toUpperCase()], +m[2]);
+    if ((m = s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/))) return iso(+m[3], MON[m[2].toUpperCase()], +m[1]);
+    return null;
+  }
+  const key = (amc, name) => amc + ':' + name.toUpperCase().replace(/\s+/g, ' ').trim();
+
+  function detect(lines) {
+    const t = lines.slice(0, 80).join('\n');
+    if (/HBL ASSET MANAGEMENT/i.test(t) && /Statement of Account/i.test(t)) return { amc: 'HBL', format: 'hbl' };
+    if (/MCB Investment Management|mcbfunds\.com|Last Balance/i.test(lines.join('\n')) && /Nature/.test(t)) return { amc: 'MCB', format: 'mcb' };
+    if (/Ledger Date/i.test(t) && /UBL/i.test(lines.join('\n'))) return { amc: 'UBL', format: 'ubl-full' };
+    if (/Your Transaction Statement/i.test(t)) return { amc: 'UBL', format: 'ubl-fund' };
+    if (/Your Portfolio Statement/i.test(t) && /Portfolio Summary/i.test(t)) return { amc: 'UBL', format: 'ubl-summary' };
+    return null;
+  }
+
+  // ---------------- HBL ----------------
+  function parseHBL(lines) {
+    const res = { amc: 'HBL', format: 'hbl', period: {}, events: [], openings: {}, closings: {}, warnings: [] };
+    const all = lines.join('\n');
+    let m = all.match(/Statement From:\s*(\S+)\s+To:\s*(\S+)/); if (m) res.period = { from: dt(m[1]), to: dt(m[2]) };
+    let inTx = false, fund = null, fname = null, pendingDiv = null;
+    const row = /^(\d{2}-[A-Za-z]{3}-\d{4})\s+([A-Z][A-Z \-]*?)\s+(-?[\d,]+\.\d+)\s+(-?[\d,]+\.\d+)\s+(-?[\d,]+\.\d+)\s+(-?[\d,]+\.\d+)\s+(-?[\d,]+\.\d+)$/;
+    for (const raw of lines) {
+      const l = raw.trim();
+      if (/^Details From/i.test(l) || /Transaction Type\s+Inflows/i.test(l)) inTx = true;
+      if (!inTx) continue;
+      let h = l.match(/^(HBL .+\))\s+(Growth|HBL Livestock Fund)$/);
+      if (h) { fname = h[1].replace(/\s+\([A-Z0-9 \-]+\)$/,'').replace(/\s+\(HBL ISAVF Plan-I\)/,'').trim(); const code = (h[1].match(/\(([A-Z0-9\-]+)\)\s*$/) || [])[1] || fname; fund = key('HBL', code); res.names = res.names || {}; res.names[fund] = fname; continue; }
+      if (!fund) continue;
+      if ((m = l.match(/^Opening Unit Balance\s+([\d,]+\.\d+)/))) { res.openings[fund] = { units: num(m[1]), name: fname }; continue; }
+      if ((m = l.match(/^Value of (\S+) Units is based on Repurchase price of Rs\.\s*([\d,.]+)\s+as on\s+(\S+)\s+([\d,.]+)/))) {
+        const c = res.closings[fund] || {}; c.nav = num(m[2]); c.navDate = dt(m[3]); c.value = num(m[4]); res.closings[fund] = c; continue; }
+      if ((m = l.match(/^Unit Balance\s+([\d,]+\.\d+)$/))) { res.closings[fund] = Object.assign(res.closings[fund] || {}, { units: num(m[1]) }); continue; }
+      if (!(m = l.match(row))) continue;
+      const [, d, typ, inflow, outflow, nav, units, bal] = m; const date = dt(d); const t = typ.trim();
+      const base = { amc: 'HBL', fundKey: fund, fundName: fname, date, nav: num(nav), balance: num(bal), units: num(units) };
+      if (t === 'INVESTMENT' || t === 'CONVERT-IN') res.events.push({ ...base, kind: 'buy', sub: t === 'INVESTMENT' ? 'investment' : 'conversion', amount: num(inflow) });
+      else if (t === 'CGT REFUND') res.events.push({ ...base, kind: 'buy', sub: 'cgtRefund', amount: num(inflow) });
+      else if (t === 'DIVIDEND INVEST') { const ev = { ...base, kind: 'buy', sub: 'dividend', amount: num(inflow) }; res.events.push(ev); pendingDiv = ev; }
+      else if (t === 'TAX ON DIVIDEND') { if (pendingDiv && pendingDiv.fundKey === fund && pendingDiv.date === date) { pendingDiv.amount -= num(outflow); pendingDiv.divTax = num(outflow); } else res.warnings.push('Dividend tax without dividend: ' + fname + ' ' + date); }
+      else if (t === 'REFUND OF CAPITAL') res.events.push({ ...base, kind: 'free', sub: 'refundOfCapital', amount: num(inflow) });
+      else if (t === 'CONVERT OUT' || t === 'REDEMPTION') res.events.push({ ...base, kind: 'sell', sub: t === 'REDEMPTION' ? 'redemption' : 'conversion', amount: Math.abs(num(units)) * num(nav), net: num(outflow) });
+      else if (t === 'CGT') res.events.push({ ...base, kind: 'cgt', sub: 'cgt', amount: num(outflow), units: 0 });
+      else res.warnings.push('Unknown HBL transaction "' + t + '" in ' + fname + ' on ' + date);
+    }
+    return res;
+  }
+
+  // ---------------- UBL full transaction statement ----------------
+  function ublKind(t) {
+    if (/^(Initial|Additional) Purchase/i.test(t)) return /CGT/i.test(t) ? ['buy','cgtRefund'] : ['buy','investment'];
+    if (/^Conversion From/i.test(t)) return ['buy','conversion'];
+    if (/^Conversion To/i.test(t)) return ['sell','conversion'];
+    if (/^Redemption/i.test(t)) return ['sell','redemption'];
+    if (/Capital Repayment/i.test(t)) return ['free','capitalRepayment'];
+    if (/Dividend/i.test(t)) return ['buy','dividend'];
+    return null;
+  }
+  function parseUBLFull(lines) {
+    const res = { amc: 'UBL', format: 'ubl-full', period: {}, events: [], openings: {}, closings: {}, warnings: [], names: {} };
+    const all = lines.join('\n'); let m;
+    if ((m = all.match(/Statement Period\s*:\s*(.+?)\s+To\s+(.+?\d{4})/))) res.period = { from: longDate(m[1]), to: longDate(m[2]) };
+    let fund = null, fname = null;
+    for (const raw of lines) {
+      const l = raw.trim();
+      if ((m = l.match(/^([A-Z][A-Z0-9 \-&']+?)\s+Opening\s+([\d,]*\.\d+)$/))) { fname = m[1].trim(); fund = key('UBL', fname); res.names[fund] = fname; res.openings[fund] = { units: num(m[2]), name: fname }; continue; }
+      if ((m = l.match(/^Fund Name\s*:\s*(.+?)\s+NAV\s*:\s*([\d,.]+)\s+Investment Value \(Rs\.\)\s*:\s*([\d,.]+)/))) {
+        const k = key('UBL', m[1].trim()); res.closings[k] = Object.assign(res.closings[k] || {}, { nav: num(m[2]), value: num(m[3]), navDate: res.period.to }); continue; }
+      if (/^[A-Z][A-Z \-&']+$/.test(l) && res.names[key('UBL', l)]) { fund = key('UBL', l); fname = l; continue; }
+      m = l.match(/^(\d{2} [A-Z]{3} \d{4})\s+(\d{2}-[A-Z]{3}-\d{4})\s+(.+)$/);
+      if (!m || !fund) continue;
+      const toks = m[3].split(/\s+/); let i = toks.findIndex(isNum); if (i < 0) continue;
+      const typ = toks.slice(0, i).join(' '); const n = toks.slice(i).map(num);
+      if (n.length < 8) { res.warnings.push('Could not read UBL row: ' + l); continue; }
+      const [gross, load, charges, cgt, net, price, units, bal] = n.slice(-8);
+      const k = ublKind(typ); if (!k) { res.warnings.push('Unknown UBL transaction "' + typ + '"'); continue; }
+      const date = dt(m[2]);
+      const base = { amc: 'UBL', fundKey: fund, fundName: fname, date, nav: price, units, balance: bal };
+      if (k[0] === 'buy') res.events.push({ ...base, kind: 'buy', sub: k[1], amount: net });
+      else if (k[0] === 'free') res.events.push({ ...base, kind: 'free', sub: k[1], amount: gross });
+      else { res.events.push({ ...base, kind: 'sell', sub: k[1], amount: gross, net, charges: (load||0) + (charges||0) });
+             if (cgt) res.events.push({ ...base, kind: 'cgt', sub: 'cgt', amount: cgt, units: 0 }); }
+    }
+    for (const k in res.closings) { const ev = res.events.filter(e => e.fundKey === k); const c = res.closings[k]; c.units = ev.length ? ev[ev.length-1].balance : (res.openings[k] || {}).units || 0; }
+    return res;
+  }
+
+  // ---------------- UBL per-fund transaction statement ----------------
+  function parseUBLFund(lines) {
+    const res = { amc: 'UBL', format: 'ubl-fund', period: {}, events: [], openings: {}, closings: {}, warnings: [], names: {} };
+    const all = lines.join('\n'); let m;
+    if ((m = all.match(/Statement Period:\s*(.+?)\s+To\s+(.+?\d{4})/))) res.period = { from: longDate(m[1]), to: longDate(m[2]) };
+    let fund = null, fname = null, curDate = null;
+    for (const raw of lines) {
+      const l = raw.trim();
+      if ((m = l.match(/^For (.+?) - Class/))) { fname = m[1].trim(); fund = key('UBL', fname); res.names[fund] = fname; continue; }
+      if (!fund) continue;
+      if ((m = l.match(/^Opening Units \(As on (.+?)\):\s*([\d,.]+)/))) { if (!res.openings[fund]) res.openings[fund] = { units: num(m[2]), name: fname, date: longDate(m[1]) }; continue; }
+      if ((m = l.match(/^Closing Units \(As on (.+?)\):\s*([\d,.]+)/))) { res.closings[fund] = Object.assign(res.closings[fund] || {}, { units: num(m[2]) }); continue; }
+      if ((m = l.match(/valued @ (.+?\d{4}) price i\.e\.\s*([\d,.]+)/))) { res.closings[fund] = Object.assign(res.closings[fund] || {}, { nav: num(m[2]), navDate: longDate(m[1]) }); continue; }
+      if ((m = l.match(/^(\d{2}-\d{2}-\d{4})$/))) { curDate = dt(m[1]); continue; }
+      if (/^\(CGT-Refund\)$/i.test(l)) { const last = res.events[res.events.length-1]; if (last && last.fundKey === fund) last.sub = 'cgtRefund'; continue; }
+      const toks = l.replace(/\(\s+/g, '(').split(/\s+/); const i = toks.findIndex(isNum); if (i <= 0 || !curDate) continue;
+      const typ = toks.slice(0, i).join(' '); const k = ublKind(typ); if (!k) continue;
+      const rest = toks.slice(i); const di = rest.findIndex(t => /^\d{2}-\d{2}-\d{4}$/.test(t)); if (di < 2) continue;
+      const pre = rest.slice(0, di).map(num); const price = pre.pop(); const [units, bal] = rest.slice(di + 1).map(num);
+      const gross = Math.abs(pre[0]), net = Math.abs(pre[pre.length-1]), cgt = pre.length >= 3 ? Math.abs(pre[1]) : 0;
+      const base = { amc: 'UBL', fundKey: fund, fundName: fname, date: dt(rest[di]), nav: price, units, balance: bal };
+      if (k[0] === 'buy') res.events.push({ ...base, kind: 'buy', sub: k[1], amount: net });
+      else if (k[0] === 'free') res.events.push({ ...base, kind: 'free', sub: k[1], amount: gross });
+      else { res.events.push({ ...base, kind: 'sell', sub: k[1], amount: gross, net }); if (cgt) res.events.push({ ...base, kind: 'cgt', sub: 'cgt', amount: cgt, units: 0 }); }
+    }
+    return res;
+  }
+
+  // ---------------- UBL portfolio summary (balances only) ----------------
+  function parseUBLSummary(lines) {
+    const res = { amc: 'UBL', format: 'ubl-summary', period: {}, events: [], openings: {}, closings: {}, warnings: [], names: {} };
+    const all = lines.join('\n'); let m;
+    if ((m = all.match(/Portfolio Summary \(As on (.+?\d{4})\)/))) res.period = { to: longDate(m[1]) };
+    for (const l of lines) {
+      if ((m = l.trim().match(/^(.+?)\s*\(([A-Z]+)\)\s*\S+-\s*UNITS\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)$/))) {
+        const fname = m[1].trim(); const k = key('UBL', fname); res.names[k] = fname;
+        res.closings[k] = { units: num(m[3]), nav: num(m[4]), value: num(m[5]), navDate: res.period.to };
+      }
+    }
+    return res;
+  }
+
+  // ---------------- MCB ----------------
+  function parseMCB(lines) {
+    const res = { amc: 'MCB', format: 'mcb', period: {}, events: [], openings: {}, closings: {}, warnings: [], names: {} };
+    const all = lines.join('\n'); let m;
+    if ((m = all.match(/([A-Z]{3}-\d{2}-\d{4})\s+To\s+([A-Z]{3}-\d{2}-\d{4})/))) res.period = { from: dt(m[1]), to: dt(m[2]) };
+    let fund = null, fname = null, prev = '';
+    for (const raw of lines) {
+      const l = raw.trim();
+      if ((m = l.match(/^(\d{2}-[A-Z]{3}-\d{2})\s+Last Balance\s+([\d,]*\.\d+)$/)) && /^[A-Z][A-Z0-9 \-]+$/.test(prev)) {
+        fname = prev; fund = key('MCB', fname); res.names[fund] = fname; res.openings[fund] = { units: num(m[2]), name: fname }; prev = l; continue; }
+      if (/^[A-Z][A-Z0-9 \-]+$/.test(l) && res.names[key('MCB', l)]) { fund = key('MCB', l); fname = l; prev = l; continue; }
+      if ((m = l.match(/^Value of (\S+)\s+([\d,]*\.\d+) Units based on Repurchase price of Rs\.\s*([\d,.]+) as on (\d{1,2} [A-Z]{3} \d{4}) is Rs\.\s*([\d,]*\.\d+)/))) {
+        if (fund) res.closings[fund] = { units: num(m[2]), nav: num(m[3]), navDate: longDate(m[4]), value: num(m[5]) }; prev = l; continue; }
+      prev = l;
+      if (!fund || !(m = l.match(/^(\d{2}-[A-Z]{3}-\d{2})\s+(.+)$/))) continue;
+      const date = dt(m[1]); const toks = m[2].split(/\s+/).filter(t => t !== '-'); const i = toks.findIndex(isNum); if (i < 0) continue;
+      const nat = toks.slice(0, i).join(' '); const n = toks.slice(i).map(num); const bal = n[n.length-1];
+      const base = { amc: 'MCB', fundKey: fund, fundName: fname, date, balance: bal };
+      if (/^CGT\*/.test(nat)) res.events.push({ ...base, kind: 'cgt', sub: 'cgt', amount: Math.abs(n[1]), nav: n[0], units: 0 });
+      else if (/^CGT Refund/i.test(nat)) res.events.push({ ...base, kind: 'buy', sub: 'cgtRefund', units: n[0], nav: n[1], amount: n[3] });
+      else if (/^Additional-Units/i.test(nat)) res.events.push({ ...base, kind: 'free', sub: 'bonus', units: n[0], nav: 0, amount: 0 });
+      else if (/^Dividend Re-Invest/i.test(nat)) res.events.push({ ...base, kind: 'buy', sub: 'dividend', units: n[0], nav: n[1], amount: n[3] });
+      else if (/^Dividend-(Declare|Tax)/i.test(nat)) continue; // re-invest amount is already net of tax
+      else if (n[0] < 0) res.events.push({ ...base, kind: 'sell', sub: /REDEMPTION/i.test(nat) ? 'redemption' : 'conversion', units: n[0], nav: n[1], amount: n[2] });
+      else if (n.length >= 5) res.events.push({ ...base, kind: 'buy', sub: /Conversion/i.test(nat) ? 'conversion' : 'investment', units: n[0], nav: n[1], amount: n[3] });
+      else res.warnings.push('Could not read MCB row: ' + l);
+    }
+    return res;
+  }
+
+  function parse(lines) {
+    const d = detect(lines); if (!d) return { error: 'This does not look like an HBL, UBL or MCB statement.' };
+    const r = { hbl: parseHBL, 'ubl-full': parseUBLFull, 'ubl-fund': parseUBLFund, 'ubl-summary': parseUBLSummary, mcb: parseMCB }[d.format](lines);
+    r.events.forEach((e, i) => { e.seq = i; });
+    // Unit-balance check: opening + every unit movement must equal each printed running balance
+    const bal = {}; Object.entries(r.openings).forEach(([k, o]) => { bal[k] = o.units; });
+    r.events.forEach(e => { if (!e.units) return; bal[e.fundKey] = Math.round(((bal[e.fundKey] || 0) + e.units) * 10000) / 10000;
+      if (e.balance != null && Math.abs(bal[e.fundKey] - e.balance) > (r.amc === 'UBL' ? 0.06 : 0.002)) { r.warnings.push(`Unit balance check failed: ${e.fundName} on ${e.date} (expected ${e.balance}, got ${bal[e.fundKey]})`); bal[e.fundKey] = e.balance; } });
+    r.unitCheck = bal;
+    return r;
+  }
+  return { parse, detect, dt };
+})();
+
+
+// ============================================================
+// FUND LEDGER ENGINE — FIFO lots, CGT, per-fund profit
+// Rules (verified against HBL/UBL/MCB statements 1 Jul 2025 – 21 Nov 2026):
+//  - Units are sold oldest first (FIFO). CGT = 15% of (gross − FIFO cost), only if positive; losses are not carried.
+//  - Dividend re-invest units cost the dividend net of tax.
+//  - Refund of capital / capital repayment / additional (bonus) units cost 0.
+//  - CGT refund units cost the refund amount and count as NEW CAPITAL (Ali's rule), never as profit.
+// ============================================================
+const LEDGER = (() => {
+  const CGT_RATE = 0.15;
+  // Known opening lots on 1 Jul 2025 (from the June 2025 HBL statement)
+  const OPENING_COST = { 'HBL:HBL-CF': { date: '2025-06-25', costPerUnit: 103.1993 } };
+
+  function fundType(name, overrides) {
+    const k = (name || '').toUpperCase();
+    if (overrides && overrides[k]) return overrides[k];
+    if (/GROWTH FUND - CLASS B|INVESTMENT FUND CLASS - B/.test(k)) return 'Stock';
+    if (/STOCK|EQUITY|ENERGY/.test(k)) return 'Stock';
+    if (/CASH|MONEY MARKET|LIQUIDITY|OPTIMIZER|DAILY DIVIDEND/.test(k)) return 'Money market';
+    if (/INCOME|SAVINGS|SOVEREIGN|GOVERNMENT|SECURITIES/.test(k)) return 'Income';
+    if (/LIVESTOCK/.test(k)) return 'Other';
+    return 'Other';
+  }
+
+  function xirr(flows) { // flows: [{d:'YYYY-MM-DD', v}] ; returns annual rate or null
+    if (flows.length < 2 || !flows.some(f => f.v < 0) || !flows.some(f => f.v > 0)) return null;
+    const t0 = new Date(flows[0].d).getTime();
+    const yrs = flows.map(f => (new Date(f.d).getTime() - t0) / (365 * 864e5));
+    let r = 0.1;
+    for (let i = 0; i < 100; i++) {
+      let f = 0, df = 0;
+      flows.forEach((c, j) => { const p = Math.pow(1 + r, yrs[j]); f += c.v / p; df -= yrs[j] * c.v / (p * (1 + r)); });
+      if (Math.abs(df) < 1e-12) break; const nr = r - f / df; if (!isFinite(nr) || nr <= -0.999) return null;
+      if (Math.abs(nr - r) < 1e-9) { r = nr; break; } r = nr;
+    }
+    return isFinite(r) ? r : null;
+  }
+
+  // events: merged statement events (any AMC), each with amc, fundKey, fundName, date, kind, sub, units, nav, amount
+  // closings: { fundKey: { units, nav, navDate, value } } latest known; openings: { fundKey: {units} }
+  function build(events, closings, openings, typeOverrides, asOf) {
+    const funds = {};
+    const get = e => funds[e.fundKey] || (funds[e.fundKey] = { key: e.fundKey, amc: e.amc, name: e.fundName, lots: [], sells: [], cgtPaid: 0, cgtRefund: 0,
+      invested: 0, redeemedNet: 0, convIn: 0, convOut: 0, dividends: 0, flows: [], cgtByDate: {}, estByDate: {}, warnings: [], firstNav: null });
+    // opening lots
+    Object.entries(openings || {}).forEach(([k, o]) => {
+      if (!o || !(o.units > 0.00001)) return;
+      const f = get({ fundKey: k, amc: k.split(':')[0], fundName: o.name || k });
+      const oc = OPENING_COST[k];
+      f.lots.push({ date: oc ? oc.date : '2025-06-30', units: o.units, cost: oc ? o.units * oc.costPerUnit : null, opening: true });
+      f.openingLot = true;
+    });
+    const sorted = [...events].sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.amc + a.fundKey).localeCompare(b.amc + b.fundKey) || (a.seq - b.seq));
+    sorted.forEach(e => {
+      const f = get(e); if (e.fundName) f.name = e.fundName;
+      if (!f.firstNav && e.nav > 0) f.firstNav = e.nav;
+      f.lots.forEach(l => { if (l.cost == null && f.firstNav) { l.cost = l.units * f.firstNav; if (l.cost > 1000) f.warnings.push('Opening units have no known cost; used first NAV ' + f.firstNav); } });
+      if (f.openingLot && !f.openingFlow && f.lots.length && f.lots[0].opening && f.lots[0].cost != null) { f.flows.push({ d: f.lots[0].date, v: -f.lots[0].cost }); f.openingFlow = true; }
+      if (e.kind === 'buy' || e.kind === 'free') {
+        const cost = e.kind === 'free' ? 0 : e.amount;
+        f.lots.push({ date: e.date, units: e.units, cost, sub: e.sub });
+        if (e.sub === 'investment') { f.invested += e.amount; f.flows.push({ d: e.date, v: -e.amount }); }
+        else if (e.sub === 'cgtRefund') { f.cgtRefund += e.amount; f.invested += e.amount; f.flows.push({ d: e.date, v: -e.amount }); }
+        else if (e.sub === 'conversion') { f.convIn += e.amount; f.flows.push({ d: e.date, v: -e.amount }); }
+        else if (e.sub === 'dividend') f.dividends += e.amount;
+      } else if (e.kind === 'sell') {
+        let rem = Math.abs(e.units), cost = 0;
+        while (rem > 1e-7 && f.lots.length) {
+          const l = f.lots[0]; const take = Math.min(l.units, rem); const c = (l.cost || 0) * take / l.units;
+          cost += c; l.cost = (l.cost || 0) - c; l.units -= take; rem -= take; if (l.units < 1e-7) f.lots.shift();
+        }
+        if (rem > (f.amc === 'UBL' ? 0.06 : 0.002)) f.warnings.push('Sold more units than held on ' + e.date);
+        const gain = e.amount - cost; const est = Math.max(0, gain) * CGT_RATE;
+        f.sells.push({ date: e.date, sub: e.sub, units: Math.abs(e.units), nav: e.nav, gross: e.amount, cost, gain, cgtEst: est, net: e.net });
+        f.estByDate[e.date] = (f.estByDate[e.date] || 0) + est;
+        if (e.sub === 'redemption') { f.redeemedNet += (e.net != null ? e.net : e.amount); }
+        else f.convOut += e.amount;
+        f.flows.push({ d: e.date, v: e.amount });
+      } else if (e.kind === 'cgt') {
+        f.cgtPaid += e.amount; f.cgtByDate[e.date] = (f.cgtByDate[e.date] || 0) + e.amount;
+        const s = f.sells.filter(x => x.date === e.date); if (s.length) { const tgt = s.find(x => x.cgt == null) || s[s.length - 1]; tgt.cgt = (tgt.cgt || 0) + e.amount; }
+      }
+    });
+    // valuation
+    const out = Object.values(funds).map(f => {
+      const units = f.lots.reduce((s, l) => s + l.units, 0);
+      const costHeld = f.lots.reduce((s, l) => s + (l.cost || 0), 0);
+      const c = (closings || {})[f.key] || {};
+      const nav = c.nav || 0; const value = units * nav;
+      if (c.units != null && Math.abs(c.units - units) > (f.amc === 'UBL' ? 0.06 : 0.002)) f.warnings.push(`Units ${units.toFixed(4)} differ from statement ${c.units}`);
+      const unreal = value - costHeld;
+      const realized = f.sells.reduce((s, x) => s + x.gain, 0);
+      // days held = cost-weighted average age of the units still held
+      const end = new Date(c.navDate || asOf); const wc = f.lots.reduce((s, l) => s + (l.cost || 0), 0);
+      const days = wc > 0 ? Math.max(0, Math.round(f.lots.reduce((s, l) => s + (l.cost || 0) * (end - new Date(l.date)) / 864e5, 0) / wc)) : 0;
+      const flows = [...f.flows].sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); if (value > 0.5) flows.push({ d: c.navDate || asOf, v: value });
+      const irr = units > 0.0001 && days >= 30 ? xirr(flows) : null;
+      return { key: f.key, amc: f.amc, name: f.name, type: fundType(f.name, typeOverrides),
+        units, nav, navDate: c.navDate || null, value, costHeld, avgCost: units > 0.0001 ? costHeld / units : null,
+        unrealized: unreal, unrealizedPct: costHeld > 0 ? unreal / costHeld : null, realized,
+        cgtPaid: f.cgtPaid, cgtRefund: f.cgtRefund, cgtIfRedeemed: Math.max(0, unreal) * CGT_RATE,
+        invested: f.invested, redeemedNet: f.redeemedNet, convIn: f.convIn, convOut: f.convOut, dividends: f.dividends,
+        sells: f.sells, lots: f.lots.map(l => ({ ...l })), days, xirr: irr, warnings: f.warnings,
+        cgtCheck: Object.keys({ ...f.cgtByDate, ...f.estByDate }).map(d => ({ d, amc: f.cgtByDate[d] || 0, fifo: f.estByDate[d] || 0 })) };
+    });
+    return out;
+  }
+
+  // FIFO cost of redeeming `amount` (gross) from a fund now — used by the redeem planner
+  function redeemCost(fund, amount) {
+    if (!fund.nav || amount <= 0) return { units: 0, cost: 0, gain: 0, cgt: 0 };
+    let units = amount / fund.nav, rem = units, cost = 0;
+    for (const l of fund.lots) { if (rem <= 1e-9) break; const t = Math.min(l.units, rem); cost += (l.cost || 0) * t / l.units; rem -= t; }
+    const gain = amount - cost; return { units, cost, gain, cgt: Math.max(0, gain) * CGT_RATE };
+  }
+
+  // Smart plan: only funds in profit, never more than a fund's profit; lowest CGT per rupee first
+  function plan(funds, want, method) {
+    const cands = funds.filter(f => f.units > 0.0001 && f.unrealized > 1).map(f => {
+      const full = redeemCost(f, f.unrealized); return { f, cap: f.unrealized, rate: full.cgt / f.unrealized };
+    });
+    let rows = [];
+    if (method === 'prop') {
+      const tot = cands.reduce((s, c) => s + c.cap, 0); const w = Math.min(want, tot);
+      rows = cands.map(c => ({ c, amt: tot > 0 ? Math.min(c.cap, w * c.cap / tot) : 0 }));
+    } else {
+      cands.sort((a, b) => a.rate - b.rate || b.cap - a.cap);
+      let left = want; rows = cands.map(c => { const a = Math.max(0, Math.min(c.cap, left)); left -= a; return { c, amt: a }; });
+    }
+    rows = rows.map(({ c, amt }) => { const r = redeemCost(c.f, amt); return { key: c.f.key, amc: c.f.amc, name: c.f.name, type: c.f.type, profit: c.cap, amount: Math.round(amt), cgt: Math.round(r.cgt), net: Math.round(amt - r.cgt) }; });
+    const avail = cands.reduce((s, c) => s + c.cap, 0);
+    return { rows, total: rows.reduce((s, r) => s + r.amount, 0), cgt: rows.reduce((s, r) => s + r.cgt, 0), net: rows.reduce((s, r) => s + r.net, 0), available: avail };
+  }
+
+  return { build, plan, redeemCost, fundType, xirr, CGT_RATE };
+})();
+
+
+// ============================================================
+// RELEASE 3 — statements, fund ledger, new dashboard, planner
+// Firebase collections (separate from 'records', which is never changed by imports):
+//   stmt_events   one document per statement transaction (id = duplicate-proof key)
+//   stmt_imports  one document per uploaded statement (period, closing balances, NAVs)
+//   fund_meta     fund type overrides
+//   recon_log     reconciliation decisions (accept / keep), with the records they created
+// ============================================================
+const R3 = { events: [], imports: [], meta: {}, recon: [], funds: [], range: '1M', want: null, method: 'smart', reinvest: '', expanded: false, pendingReview: [], charts: {}, detailKey: null };
+window.R3 = R3;
+window.r3Sorted = () => sortedAsc();
+const r3n = v => Math.round(v || 0).toLocaleString('en-PK');
+const r3pkr = v => (v < 0 ? '(' + 'PKR ' + r3n(Math.abs(v)) + ')' : 'PKR ' + r3n(v));
+const r3s = v => (v < 0 ? '(' + r3n(Math.abs(v)) + ')' : r3n(v));
+const r3pct = v => v == null || !isFinite(v) ? '—' : (v * 100).toFixed(1) + '%';
+const r3cls = v => v > 0.5 ? 'up' : v < -0.5 ? 'dn' : '';
+const r3esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const R3_FIELD = { HBL: 'hblFund', UBL: 'ublFund', MCB: 'mcbFund' };
+const R3_START = '2026-01-01'; // first record in the app; reconciliation looks at flows from here
+const R3_TYPE_CLASS = { 'Money market': 'mm', 'Income': 'inc', 'Stock': 'stk' };
+const r3Label = (amc, name) => { const n = r3TitleCase(name); return n.toUpperCase().startsWith(amc) || /^Alhamra/i.test(n) ? n : amc + ' · ' + n; };
+const r3TitleCase = s => /[a-z]/.test(s) ? s : s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bUbl\b/g, 'UBL').replace(/\bMcb\b/g, 'MCB').replace(/\bHbl\b/g, 'HBL').replace(/Unit-b/g, 'Unit-B').replace(/Unit-a/g, 'Unit-A');
+
+// ---------------- data loading ----------------
+function r3InitData() {
+  if (!db) return;
+  db.collection('stmt_events').onSnapshot(s => { R3.events = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute(); });
+  db.collection('stmt_imports').onSnapshot(s => { R3.imports = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute(); });
+  db.collection('fund_meta').onSnapshot(s => { R3.meta = {}; s.docs.forEach(d => { R3.meta[d.id] = d.data(); }); r3Recompute(); });
+  db.collection('recon_log').onSnapshot(s => { R3.recon = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.at || '').localeCompare(a.at || '')); r3RenderStatements(); });
+}
+function r3Merged() {
+  const closings = {}, openings = {};
+  [...R3.imports].sort((a, b) => ((a.period || {}).from || '9').localeCompare((b.period || {}).from || '9')).forEach(im => {
+    Object.entries(im.openings || {}).forEach(([k, o]) => { if (!openings[k]) openings[k] = o; });
+  });
+  R3.imports.forEach(im => Object.entries(im.closings || {}).forEach(([k, c]) => {
+    const d = c.navDate || (im.period || {}).to || '';
+    if (!closings[k] || d > (closings[k].navDate || '')) closings[k] = { ...c, navDate: d };
+  }));
+  return { closings, openings };
+}
+function r3Recompute() {
+  const { closings, openings } = r3Merged();
+  const types = {}; Object.entries(R3.meta).forEach(([k, v]) => { if (v.name && v.type) types[v.name.toUpperCase()] = v.type; });
+  R3.funds = R3.imports.length ? LEDGER.build(R3.events, closings, openings, types, today()) : [];
+  R3.funds.forEach(f => { const m = R3.meta[r3DocId(f.key)]; if (m && m.type) f.type = m.type; });
+  if (typeof allRecords !== 'undefined' && allRecords.length) { renderDashboard(sortedAsc()); r3RenderFunds(); }
+  r3RenderStatements();
+}
+const r3DocId = k => k.replace(/[\/#\s]+/g, '_');
+const r3Held = () => R3.funds.filter(f => f.units > 0.0001);
+
+// ---------------- dashboard ----------------
+function renderDashboard(sorted) {
+  if (!sorted.length) return;
+  const last = sorted[sorted.length - 1];
+  const run = computeRunning(sorted);
+  const capital = (run[last.id] || {}).capital ?? last.cumCapital;
+  const cumProfit = (run[last.id] || {}).profit ?? last.cumProfit;
+  const daily = computeDaily(sorted); const dkeys = Object.keys(daily).sort();
+  const lastDay = dkeys[dkeys.length - 1]; const todayP = lastDay ? daily[lastDay].gross : 0;
+  // annualised return — same method as before (weighted average capital from 14 May)
+  const profitStart = new Date('2026-05-14T00:00:00'); const lastDate = new Date(last.date + 'T00:00:00');
+  const pDays = Math.max(1, Math.round((lastDate - profitStart) / 864e5));
+  const netForReturn = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking).reduce((s, r) => s + (r.change || 0) - (r.totalCGT || 0), 0);
+  const ps = sorted.filter(r => r.date >= '2026-05-14'); let wsum = 0;
+  for (let i = 0; i < ps.length; i++) { const nd = i + 1 < ps.length ? new Date(ps[i + 1].date + 'T00:00:00') : lastDate; wsum += ((run[ps[i].id] || {}).capital || ps[i].cumCapital || 0) * Math.max(0, (nd - new Date(ps[i].date + 'T00:00:00')) / 864e5); }
+  const avgCap = wsum / pDays; const ann = avgCap > 0 ? netForReturn / avgCap * 365 / pDays * 100 : 0;
+  const held = r3Held(); const hasStmt = R3.funds.length > 0;
+  const cgtPaid = R3.funds.reduce((s, f) => s + f.cgtPaid, 0), cgtRef = R3.funds.reduce((s, f) => s + f.cgtRefund, 0);
+  const cgtIf = held.reduce((s, f) => s + f.cgtIfRedeemed, 0);
+  const $ = id => document.getElementById(id);
+
+  // alerts
+  r3RenderAlerts(sorted);
+  // hero
+  $('h-networth').textContent = 'PKR ' + r3n(last.total);
+  const chip = $('h-today'); chip.textContent = (todayP >= 0 ? '+ ' : '− ') + 'PKR ' + r3n(Math.abs(todayP)) + (lastDay ? ' · ' + fmtDate(lastDay).slice(0, 6) : '');
+  chip.className = 'r3-chip' + (todayP < 0 ? ' neg' : '');
+  $('h-sub').textContent = 'Last update ' + fmtDate(last.date) + (hasStmt ? ' · If everything were redeemed today, est. CGT PKR ' + r3n(cgtIf) : '');
+  $('h-capital').textContent = r3n(capital);
+  $('h-profit').textContent = r3s(cumProfit); $('h-profit').className = 'r3-tv ' + (cumProfit < 0 ? 'dn' : 'up');
+  $('h-cgt').textContent = hasStmt ? r3n(cgtPaid) : '—';
+  $('h-cgt-sub').textContent = hasStmt ? 'Since 1 Jul 2025 · refunded ' + r3n(cgtRef) : 'Upload statements';
+  $('h-ann').textContent = ann.toFixed(2) + '% p.a.'; $('h-ann-sub').textContent = pDays + ' days from 14 May';
+  r3Spark(dkeys.slice(-30).map(d => daily[d].gross));
+
+  // performance row
+  const month = today().slice(0, 7); const mDays = dkeys.filter(d => d.startsWith(month));
+  const mtd = mDays.reduce((s, d) => s + daily[d].gross, 0);
+  let best = null, worst = null; dkeys.forEach(d => { const v = daily[d].gross; if (!best || v > best.v) best = { d, v }; if (!worst || v < worst.v) worst = { d, v }; });
+  $('r3-perf').innerHTML = `
+    <div class="metric-card"><div class="lbl">This month's profit</div><div class="val ${r3cls(mtd)}">${mtd < 0 ? '(' + r3n(-mtd) + ')' : '+' + r3n(mtd)}</div><div class="sub">${mDays.length} update days · before CGT</div></div>
+    <div class="metric-card"><div class="lbl">Profit available to withdraw</div><div class="val">${r3pkr(Math.max(0, cumProfit))}</div><div class="sub">Without touching capital</div></div>
+    <div class="metric-card"><div class="lbl">CGT if redeemed today</div><div class="val dn">${hasStmt ? r3n(cgtIf) : '—'}</div><div class="sub">${hasStmt ? '15% of gains on units held' : 'Upload statements'}</div></div>
+    <div class="metric-card"><div class="lbl">Best / worst day</div><div class="val"><span class="up">${best ? r3n(best.v) : '—'}</span> <span style="color:var(--text3);font-weight:400">/</span> <span class="dn">${worst ? r3s(worst.v) : '—'}</span></div><div class="sub">${best ? fmtDate(best.d).slice(0, 6) : ''} · ${worst ? fmtDate(worst.d).slice(0, 6) : ''}</div></div>`;
+
+  r3RenderBreakdown(last);
+  r3DailyChart(daily, dkeys);
+  r3Donut(last);
+  r3Growth(sorted, run);
+  r3Types(last);
+  r3Monthly(daily, dkeys);
+  r3RenderPlanner(cumProfit);
+  r3Activity(sorted);
+}
+
+function r3RenderAlerts(sorted) {
+  const items = [];
+  if (!R3.imports.length) items.push('No statements uploaded yet. Open <b>Statements</b> and upload your HBL, UBL and MCB statements to see fund-level profit and CGT.');
+  const cov = r3Coverage();
+  Object.entries(cov).forEach(([amc, c]) => {
+    c.gaps.forEach(g => items.push(`${amc}: no statement covers ${fmtDate(g[0])} – ${fmtDate(g[1])}.`));
+    if (c.end && (new Date(today()) - new Date(c.end)) / 864e5 > 10) items.push(`${amc}: latest statement ends ${fmtDate(c.end)}. Upload a newer one to update fund values.`);
+  });
+  R3.funds.forEach(f => f.warnings.forEach(w => items.push(`${r3TitleCase(f.name)}: ${r3esc(w)}`)));
+  const rc = r3ReconAll(sorted || sortedAsc());
+  Object.entries(rc).forEach(([amc, r]) => { if (r.pending.length) items.push(`${amc}: ${r.pending.length} entr${r.pending.length > 1 ? 'ies' : 'y'} not yet on the statement (${r.pending.map(p => r3s(p.amt) + ' on ' + fmtDate(p.date).slice(0, 6)).join(', ')}).`);
+    if (Math.abs(r.delta) >= 1 && !r.decided) items.push(`${amc}: records differ from the statement by ${r3s(r.delta)}. Review in <b>Statements</b>.`); });
+  document.getElementById('r3-alerts').innerHTML = items.length ? `<div class="r3-alert"><div>⚠</div><div><b>${items.length} item${items.length > 1 ? 's' : ''} need attention</b><ul>${items.slice(0, 8).map(i => '<li>' + i + '</li>').join('')}</ul></div><a href="#" onclick="showSection('statements');return false" style="margin-left:auto;font-weight:600">Review</a></div>` : '';
+}
+
+function r3Spark(vals) {
+  const c = document.getElementById('h-spark'); if (!c || !c.getContext) return; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height);
+  if (vals.length < 2) return; let cum = 0; const pts = vals.map(v => (cum += v));
+  const mn = Math.min(...pts), mx = Math.max(...pts), rg = mx - mn || 1;
+  x.strokeStyle = '#86efac'; x.lineWidth = 2; x.beginPath();
+  pts.forEach((v, i) => { const px = i * (c.width - 4) / (pts.length - 1) + 2, py = c.height - 4 - (v - mn) / rg * (c.height - 8); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.stroke();
+}
+
+function r3ToggleBreakdown() {
+  R3.expanded = !R3.expanded;
+  document.getElementById('r3-breakdown').style.display = R3.expanded ? 'block' : 'none';
+  document.getElementById('h-chev').textContent = R3.expanded ? '▲' : '▼';
+  document.getElementById('h-profit-hint').textContent = R3.expanded ? 'Hide fund breakdown' : 'Click for fund breakdown';
+  document.getElementById('h-profit-btn').setAttribute('aria-expanded', R3.expanded);
+}
+const r3TypeTag = t => `<span class="r3-tag ${R3_TYPE_CLASS[t] || 'oth'}">${r3esc(t)}</span>`;
+function r3FundRows(list, clickable) {
+  return list.map(f => `<tr class="fund" ${clickable ? `onclick="r3OpenFund('${r3esc(f.key)}')"` : ''}>
+    <td class="l" style="padding-left:20px">${r3esc(r3TitleCase(f.name))}</td><td class="l">${r3TypeTag(f.type)}</td>
+    <td>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</td>
+    <td>${f.nav ? f.nav.toFixed(4) : '—'}<div class="r3-note">${f.navDate ? fmtDate(f.navDate).slice(0, 6) : ''}</div></td>
+    <td>${r3n(f.costHeld)}</td><td><b>${r3n(f.value)}</b></td>
+    <td class="${r3cls(f.unrealized)}"><b>${r3s(f.unrealized)}</b></td><td class="${r3cls(f.unrealized)}">${r3pct(f.unrealizedPct)}</td>
+    <td>${f.xirr == null ? '—' : r3pct(f.xirr)}</td><td>${f.days}</td><td class="dn">${r3n(f.cgtIfRedeemed)}</td></tr>`).join('');
+}
+const R3_HEAD = `<thead><tr><th>Fund</th><th class="l">Type</th><th>Units</th><th>Avg NAV</th><th>Latest NAV</th><th>Cost</th><th>Value</th><th>Profit / loss</th><th>Return</th><th>Annualised</th><th>Days</th><th>CGT if redeemed</th></tr></thead>`;
+function r3RenderBreakdown(last) {
+  const t = document.getElementById('r3-breakdown-table'); if (!t) return;
+  const held = r3Held();
+  if (!held.length) { t.innerHTML = '<tbody><tr><td class="l">Upload statements to see each fund.</td></tr></tbody>'; return; }
+  let html = R3_HEAD + '<tbody>';
+  ['HBL', 'UBL', 'MCB'].forEach(amc => {
+    const fs = held.filter(f => f.amc === amc).sort((a, b) => b.value - a.value); if (!fs.length) return;
+    const v = fs.reduce((s, f) => s + f.value, 0), pl = fs.reduce((s, f) => s + f.unrealized, 0), cg = fs.reduce((s, f) => s + f.cgtIfRedeemed, 0), co = fs.reduce((s, f) => s + f.costHeld, 0);
+    html += `<tr class="amc"><td class="l" colspan="5">${amc} Funds <span class="r3-note" style="font-weight:400">· your records: ${r3n(last[R3_FIELD[amc]])}</span></td><td>${r3n(co)}</td><td>${r3n(v)}</td><td class="${r3cls(pl)}">${r3s(pl)}</td><td>${r3pct(co ? pl / co : null)}</td><td></td><td></td><td class="dn">${r3n(cg)}</td></tr>` + r3FundRows(fs, true);
+  });
+  html += `<tr class="amc"><td class="l" colspan="6">Binance · UBL Bank · Cash <span class="r3-note" style="font-weight:400">(from your records, no fund statement)</span></td><td>${r3n((last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0))}</td><td colspan="5"></td></tr></tbody>`;
+  t.innerHTML = html;
+}
+
+function r3Chart(id, cfg) {
+  const el = document.getElementById(id); if (!el || typeof Chart === 'undefined') return;
+  try { if (R3.charts[id]) R3.charts[id].destroy(); R3.charts[id] = new Chart(el, cfg); } catch (e) { console.warn('chart', id, e); }
+}
+const r3Grid = () => getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e6ea';
+const r3Txt = () => getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#5a6272';
+function r3DailyChart(daily, dkeys) {
+  const ranges = { '7D': 7, '1M': 31, '3M': 92, 'All': 100000 };
+  document.getElementById('r3-range').innerHTML = Object.keys(ranges).map(k => `<button type="button" class="${k === R3.range ? 'on' : ''}" aria-pressed="${k === R3.range}" onclick="R3.range='${k}';renderDashboard(sortedAsc())">${k}</button>`).join('');
+  const cutoff = new Date(today()); cutoff.setDate(cutoff.getDate() - ranges[R3.range]);
+  const ks = dkeys.filter(d => new Date(d) >= cutoff);
+  const vals = ks.map(d => daily[d].gross);
+  r3Chart('r3-daily', { type: 'bar', data: { labels: ks.map(d => fmtDate(d).slice(0, 6)), datasets: [{ data: vals, borderRadius: 4,
+    backgroundColor: ks.map(d => daily[d].gross >= 0 ? (daily[d].tx ? '#15803d' : '#22c55e') : (daily[d].tx ? '#991b1b' : '#ef4444')) }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + r3s(c.raw) + (daily[ks[c.dataIndex]].tx ? ' · transaction day' : '') + ' · CGT est. ' + r3n(daily[ks[c.dataIndex]].cgt) } } },
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: r3Txt(), maxRotation: 0, autoSkip: true } }, y: { grid: { color: r3Grid() }, ticks: { font: { size: 10 }, color: r3Txt(), callback: v => r3s(v) } } } } });
+  const tot = vals.reduce((s, v) => s + v, 0);
+  document.getElementById('r3-daily-sum').innerHTML = `Period total: <b class="${r3cls(tot)}">${r3s(tot)}</b> · profit days <b>${vals.filter(v => v >= 0).length}</b> · loss days <b>${vals.filter(v => v < 0).length}</b>`;
+}
+const R3_ALLOC = [['HBL Funds', 'hblFund', '#2563eb'], ['UBL Funds', 'ublFund', '#0d9488'], ['MCB Funds', 'mcbFund', '#ea580c'], ['Binance', 'binanceFund', '#f59e0b'], ['UBL Bank', 'ublBank', '#7c3aed'], ['Cash', 'cash', '#64748b']];
+function r3Donut(last) {
+  const tot = last.total || 1; const items = R3_ALLOC.map(([n, f, c]) => ({ n, v: last[f] || 0, c })).filter(i => i.v > 0);
+  r3Chart('r3-donut', { type: 'doughnut', data: { labels: items.map(i => i.n), datasets: [{ data: items.map(i => i.v), backgroundColor: items.map(i => i.c), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + r3n(c.raw) } } } } });
+  document.getElementById('r3-alloc-legend').innerHTML = items.map(i => `<div><span class="r3-dot" style="background:${i.c}"></span><span style="flex:1">${i.n}</span><span>${r3n(i.v)}</span><b style="width:48px;text-align:right">${(i.v / tot * 100).toFixed(1)}%</b></div>`).join('') + `<div style="border-top:1px solid var(--border);padding-top:8px"><span style="flex:1;color:var(--text2)">Total</span><b>${r3n(last.total)}</b></div>`;
+}
+function r3Growth(sorted, run) {
+  const pts = {}; sorted.forEach(r => { if (r.date < '2026-05-01') return; pts[r.date.slice(0, 7)] = r; });
+  const ks = Object.keys(pts).sort();
+  r3Chart('r3-growth', { type: 'line', data: { labels: ks.map(k => new Date(k + '-01').toLocaleDateString('en-GB', { month: 'short' })),
+    datasets: [{ label: 'Net worth', data: ks.map(k => pts[k].total), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)', fill: true, tension: 0.3, pointRadius: 3 },
+      { label: 'Capital', data: ks.map(k => (run[pts[k].id] || {}).capital), borderColor: '#94a3b8', borderDash: [5, 4], tension: 0.3, pointRadius: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 }, color: r3Txt() } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + r3n(c.raw) } } },
+      scales: { x: { grid: { display: false }, ticks: { color: r3Txt() } }, y: { grid: { color: r3Grid() }, ticks: { color: r3Txt(), callback: v => (v / 1e6).toFixed(1) + 'M' } } } } });
+}
+function r3Types(last) {
+  const el = document.getElementById('r3-types'); const t = {};
+  r3Held().forEach(f => { t[f.type] = (t[f.type] || 0) + f.value; });
+  if ((last.binanceFund || 0) > 0) t['Crypto (Binance)'] = last.binanceFund;
+  t['Cash & bank'] = (last.ublBank || 0) + (last.cash || 0);
+  const tot = Object.values(t).reduce((s, v) => s + v, 0) || 1; const mx = Math.max(...Object.values(t), 1);
+  const col = { 'Money market': '#2563eb', 'Income': '#0d9488', 'Stock': '#7c3aed', 'Crypto (Binance)': '#f59e0b', 'Cash & bank': '#64748b', 'Other': '#94a3b8' };
+  el.innerHTML = (r3Held().length ? '' : '<p class="r3-note" style="margin-bottom:10px">Fund types appear after statements are uploaded.</p>') + Object.entries(t).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    `<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${k}</span><span><b>${r3n(v)}</b> <span class="r3-note">· ${(v / tot * 100).toFixed(1)}%</span></span></div><div class="r3-bar"><div style="width:${(v / mx * 100).toFixed(1)}%;background:${col[k] || '#94a3b8'}"></div></div></div>`).join('') +
+    '<p class="r3-note">Fund values from latest statements; Binance and cash from your records.</p>';
+}
+function r3Monthly(daily, dkeys) {
+  const m = {}; dkeys.forEach(d => { const k = d.slice(0, 7); m[k] = m[k] || { p: 0, c: 0 }; m[k].p += daily[d].gross; });
+  R3.events.forEach(e => { if (e.kind === 'cgt' && e.date >= '2026-05-01') { const k = e.date.slice(0, 7); m[k] = m[k] || { p: 0, c: 0 }; m[k].c += e.amount; } });
+  const ks = Object.keys(m).filter(k => k >= '2026-05').sort();
+  r3Chart('r3-monthly', { type: 'bar', data: { labels: ks.map(k => new Date(k + '-01').toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })),
+    datasets: [{ label: 'Profit before CGT', data: ks.map(k => Math.round(m[k].p)), backgroundColor: '#22c55e', borderRadius: 4 }, { label: 'CGT deducted', data: ks.map(k => Math.round(m[k].c)), backgroundColor: '#fca5a5', borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 }, color: r3Txt() } }, tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + r3n(c.raw) } } },
+      scales: { x: { grid: { display: false }, ticks: { color: r3Txt() } }, y: { grid: { color: r3Grid() }, ticks: { color: r3Txt(), callback: v => r3s(v) } } } } });
+}
+function r3Activity(sorted) {
+  const badge = { 'Profit Update': ['#dbeafe', '#1e40af', 'Profit'], 'New Investment': ['#dcfce7', '#166534', 'Investment'], 'Redemption': ['#fee2e2', '#991b1b', 'Redemption'], 'Transfer/Rebalance': ['#fef3c7', '#78350f', 'Transfer'], 'CGT Settlement': ['#fef3c7', '#78350f', 'CGT'] };
+  const desc = r => r.transferDetails || r.notes || ({ 'Profit Update': 'Daily update — all funds', 'New Investment': 'Fresh capital', 'Redemption': r.fromProfit > 0 && !r.fromCapital ? 'Taken from profit' : 'Withdrawal', 'Transfer/Rebalance': 'Moved between accounts' }[r.entryType] || '');
+  document.getElementById('r3-activity').innerHTML = [...sorted].reverse().slice(0, 8).map(r => { const b = badge[r.entryType] || badge['Profit Update']; const v = r.entryType === 'Profit Update' ? (r.change || 0) : (r.change || 0);
+    return `<div class="r3-act"><span class="r3-tag" style="background:${b[0]};color:${b[1]};min-width:92px;text-align:center">${b[2]}</span><span class="t">${r3esc(desc(r))}</span><span class="d">${fmtDate(r.date).slice(0, 6)}</span><span class="a ${r3cls(v)}">${v < 0 ? '(' + r3n(-v) + ')' : '+' + r3n(v)}</span></div>`; }).join('');
+}
+
+// ---------------- redeem planner ----------------
+function r3RenderPlanner(cumProfit) {
+  const el = document.getElementById('r3-planner'); if (!el) return;
+  const avail = Math.max(0, Math.round(cumProfit)); const held = r3Held();
+  if (!held.length) { el.innerHTML = '<div class="card-title">Redeem profit planner</div><p class="r3-note">Upload statements first — the planner needs each fund\'s units and cost.</p>'; return; }
+  if (R3.want == null) R3.want = Math.min(20000, avail);
+  const want = Math.min(R3.want, avail);
+  const p = LEDGER.plan(held, want, R3.method);
+  const losses = held.filter(f => f.unrealized < -1).reduce((s, f) => s + f.unrealized, 0);
+  const rows = [...p.rows].sort((a, b) => b.amount - a.amount);
+  el.innerHTML = `<div class="r3-head"><div><div class="card-title" style="margin:0">Redeem profit planner</div>
+      <div class="r3-note" style="margin-top:4px">Available to withdraw (your records): <b>${r3n(avail)}</b> · profit sitting in funds (statements): <b class="up">${r3n(p.available)}</b> · losses in funds: <b class="dn">${r3s(losses)}</b></div></div>
+      <div class="r3-seg">${[['smart', 'Smart (lowest CGT)'], ['prop', 'Proportional']].map(([k, l]) => `<button type="button" class="${R3.method === k ? 'on' : ''}" onclick="R3.method='${k}';r3RenderPlanner(${cumProfit})">${l}</button>`).join('')}</div></div>
+    <div class="r3-amts"><span class="r3-note">I want to redeem:</span>${[10000, 20000, avail].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map(v => `<button type="button" class="${v === want ? 'on' : ''}" onclick="R3.want=${v};r3RenderPlanner(${cumProfit})">${v === avail ? 'All available · ' : ''}${r3n(v)}</button>`).join('')}
+      <input type="number" min="0" step="1000" placeholder="Other amount" aria-label="Other amount" onchange="R3.want=Math.max(0,+this.value||0);r3RenderPlanner(${cumProfit})"></div>
+    ${R3.want > avail ? `<p class="r3-note dn" style="margin-bottom:8px">Capped at ${r3n(avail)} — more would come from capital.</p>` : ''}
+    <div class="table-wrap"><table class="r3-table" style="min-width:640px"><thead><tr><th>Redeem from</th><th class="l">Type</th><th>Profit in fund</th><th>Suggested amount</th><th>Est. CGT</th><th>You receive</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.amount ? '' : 'muted'}"><td class="l">${r3esc(r3Label(r.amc, r.name))}</td><td class="l">${r3TypeTag(r.type)}</td><td class="up">${r3n(r.profit)}</td><td><b>${r.amount ? r3n(r.amount) : '—'}</b></td><td class="dn">${r.amount ? r3n(r.cgt) : '—'}</td><td>${r.amount ? r3n(r.net) : '—'}</td></tr>`).join('')}
+      <tr class="amc"><td class="l" colspan="3">Total</td><td>${r3n(p.total)}</td><td class="dn">${r3n(p.cgt)}</td><td class="up">${r3n(p.net)}</td></tr></tbody></table></div>
+    <div class="r3-head" style="margin-top:12px;margin-bottom:0"><div class="r3-note" style="max-width:640px">${R3.method === 'smart' ? 'Smart takes profit first from funds where the units sold carry the least taxable gain, so CGT now is lowest.' : 'Proportional takes from each fund in proportion to the profit it holds.'} Funds in loss are skipped. Your capital stays untouched.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="r3-note" for="r3-reinvest">Reinvest into</label>
+        <select id="r3-reinvest" onchange="R3.reinvest=this.value" style="padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
+          ${[['', 'Nothing (take cash)'], ['binanceFund', 'Binance'], ['ublBank', 'UBL Bank'], ['cash', 'Cash']].map(([v, l]) => `<option value="${v}" ${R3.reinvest === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <button type="button" class="r3-btn primary" ${p.total > 0 ? '' : 'disabled'} onclick='r3RecordPlan(${JSON.stringify(rows.filter(r => r.amount > 0).map(r => ({ amc: r.amc, name: r3TitleCase(r.name), amount: r.amount, net: r.net })))})'>Record these redemptions</button></div></div>`;
+}
+let r3AfterSave = null;
+function r3RecordPlan(rows) {
+  if (!rows.length) return;
+  const last = getLastRecord(); if (!last) return;
+  const by = {}; rows.forEach(r => { by[r.amc] = (by[r.amc] || 0) + r.amount; });
+  openEntryModal(); selectTxType('Redemption');
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = Math.round(v); };
+  set('f-hbl', (last.hblFund || 0) - (by.HBL || 0)); set('f-ubl', (last.ublFund || 0) - (by.UBL || 0)); set('f-mcb', (last.mcbFund || 0) - (by.MCB || 0));
+  const notes = document.getElementById('f-notes'); if (notes) notes.value = 'Planner: ' + rows.map(r => r.name + ' ' + r3n(r.amount)).join('; ');
+  updateCalcPreview();
+  const net = rows.reduce((s, r) => s + r.net, 0);
+  r3AfterSave = R3.reinvest ? { field: R3.reinvest, amount: net } : null;
+  showToast('Check the redemption and click Save entry' + (r3AfterSave ? ' — the reinvestment opens next' : ''), 4000);
+}
+function r3OnCommitted(entry) {
+  if (r3AfterSave && entry.entryType === 'Redemption') {
+    const a = r3AfterSave; r3AfterSave = null;
+    setTimeout(() => { const last = getLastRecord(); openEntryModal(); selectTxType('New Investment');
+      const id = { binanceFund: 'f-binance', ublBank: 'f-ublbank', cash: 'f-cash' }[a.field]; const el = document.getElementById(id);
+      if (el && last) el.value = Math.round((last[a.field] || 0) + a.amount);
+      const n = document.getElementById('f-notes'); if (n) n.value = 'Reinvested profit from planner';
+      updateCalcPreview(); showToast('Now confirm the reinvestment of ' + r3n(a.amount), 4000); }, 900);
+  }
+}
+
+// ---------------- funds tab ----------------
+function r3RenderFunds() {
+  const el = document.getElementById('r3-funds'); if (!el) return;
+  if (!R3.funds.length) { el.innerHTML = '<p class="r3-note">Upload statements in the Statements tab to see your funds.</p>'; return; }
+  const { closings } = r3Merged(); const asof = Object.values(closings).map(c => c.navDate).filter(Boolean).sort().pop();
+  document.getElementById('r3-funds-asof').textContent = asof ? 'Values as of latest statements (' + fmtDate(asof) + ')' : '';
+  let html = '';
+  ['HBL', 'UBL', 'MCB'].forEach(amc => {
+    const all = R3.funds.filter(f => f.amc === amc); if (!all.length) return;
+    const held = all.filter(f => f.units > 0.0001).sort((a, b) => b.value - a.value), closed = all.filter(f => f.units <= 0.0001);
+    html += `<h3 style="font-size:15px;margin:14px 0 8px">${amc} Funds</h3><div class="table-wrap"><table class="r3-table">${R3_HEAD}<tbody>${r3FundRows(held, true)}</tbody></table></div>`;
+    if (closed.length) html += `<details style="margin:8px 0 4px"><summary class="r3-note" style="cursor:pointer">Closed funds (${closed.length}) — realised gains and CGT</summary><div class="table-wrap"><table class="r3-table" style="min-width:600px"><thead><tr><th>Fund</th><th class="l">Type</th><th>Realised gain</th><th>CGT paid</th><th>Sales</th></tr></thead><tbody>${closed.map(f => `<tr class="fund" onclick="r3OpenFund('${r3esc(f.key)}')"><td class="l">${r3esc(r3TitleCase(f.name))}</td><td class="l">${r3TypeTag(f.type)}</td><td class="${r3cls(f.realized)}">${r3s(f.realized)}</td><td class="dn">${r3n(f.cgtPaid)}</td><td>${f.sells.length}</td></tr>`).join('')}</tbody></table></div></details>`;
+  });
+  el.innerHTML = html;
+  if (R3.detailKey) r3OpenFund(R3.detailKey, true);
+}
+function r3OpenFund(key, keepScroll) {
+  const f = R3.funds.find(x => x.key === key); const el = document.getElementById('r3-fund-detail'); if (!f || !el) return;
+  R3.detailKey = key;
+  if (!document.getElementById('section-funds').classList.contains('active')) showSection('funds');
+  const ev = R3.events.filter(e => e.fundKey === key).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.seq || 0) - (b.seq || 0));
+  const lbl = { investment: 'Investment', conversion: 'Conversion', redemption: 'Redemption', dividend: 'Dividend re-invest', cgtRefund: 'CGT refund (capital)', refundOfCapital: 'Refund of capital (free units)', capitalRepayment: 'Capital repayment (free units)', bonus: 'Additional units (free)', cgt: 'CGT deducted' };
+  const sellQ = [...f.sells];
+  const rows = ev.filter(e => e.kind !== 'cgt').map(e => { let gain = '', cgt = '';
+    if (e.kind === 'sell') { const s = sellQ.shift(); if (s) { gain = `<span class="${r3cls(s.gain)}">${s.gain >= 0 ? 'Gain ' : 'Loss '}${r3n(Math.abs(s.gain))}</span>`; cgt = s.cgt != null ? r3n(s.cgt) : '0'; } }
+    if (e.kind === 'cgt') cgt = r3n(e.amount);
+    const io = e.kind === 'sell' ? 'Out' : e.kind === 'cgt' ? '' : 'In';
+    return `<tr><td class="l">${fmtDate(e.date)}</td><td class="l">${io} ${lbl[e.sub] || e.sub}</td><td>${e.units ? e.units.toLocaleString('en-PK', { maximumFractionDigits: 4 }) : ''}</td><td>${e.nav ? e.nav.toFixed(4) : ''}</td><td>${e.kind === 'cgt' ? '' : r3n(e.amount)}</td><td>${gain}</td><td class="dn">${cgt}</td><td>${e.balance != null ? e.balance.toLocaleString('en-PK', { maximumFractionDigits: 4 }) : ''}</td></tr>`; }).join('');
+  const types = ['Money market', 'Income', 'Stock', 'Other'];
+  el.style.display = 'block';
+  el.innerHTML = `<div class="r3-head"><div><div class="card-title" style="margin:0">${r3esc(r3Label(f.amc, f.name))}</div><div class="r3-note">${f.navDate ? 'Latest NAV ' + (f.nav || 0).toFixed(4) + ' on ' + fmtDate(f.navDate) : ''}</div></div>
+      <div style="display:flex;gap:8px;align-items:center"><label class="r3-note" for="r3-type">Fund type</label><select id="r3-type" onchange="r3SetType('${r3esc(f.key)}','${r3esc(f.name)}',this.value)" style="padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">${types.map(t => `<option ${t === f.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <button type="button" class="r3-btn" onclick="document.getElementById('r3-fund-detail').style.display='none';R3.detailKey=null">Close</button></div></div>
+    <div class="r3-kv"><div>Units held<b>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</b></div><div>Average NAV (break-even)<b>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</b></div><div>Value<b>${r3n(f.value)}</b></div><div>Profit / loss on units held<b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)} · ${r3pct(f.unrealizedPct)}</b></div>
+      <div>Cost of units held<b>${r3n(f.costHeld)}</b></div><div>Realised gains since 1 Jul 2025<b class="${r3cls(f.realized)}">${r3s(f.realized)}</b></div><div>CGT paid<b class="dn">${r3n(f.cgtPaid)}</b></div><div>CGT if redeemed today<b class="dn">${r3n(f.cgtIfRedeemed)}</b></div></div>
+    ${f.lots.length ? `<h3 style="font-size:14px;margin:14px 0 6px">Units still held (oldest first — these are sold first)</h3><div class="table-wrap"><table class="r3-table" style="min-width:520px"><thead><tr><th>Bought</th><th>Units</th><th>Cost NAV</th><th>Cost</th><th>Value now</th><th>Profit / loss</th></tr></thead><tbody>${f.lots.map(l => { const v = l.units * (f.nav || 0); const c = l.cost || 0; return `<tr><td class="l">${fmtDate(l.date)}${l.opening ? ' (opening)' : ''}</td><td>${l.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${l.units ? (c / l.units).toFixed(4) : ''}</td><td>${r3n(c)}</td><td>${r3n(v)}</td><td class="${r3cls(v - c)}">${r3s(v - c)}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
+    <h3 style="font-size:14px;margin:14px 0 6px">All transactions since 1 Jul 2025</h3><div class="table-wrap" style="max-height:420px;overflow:auto"><table class="r3-table" style="min-width:760px"><thead><tr><th>Date</th><th class="l">Transaction</th><th>Units</th><th>NAV</th><th>Amount</th><th>Gain / loss</th><th>CGT</th><th>Unit balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  if (!keepScroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function r3SetType(key, name, type) {
+  if (!db) return; await db.collection('fund_meta').doc(r3DocId(key)).set({ key, name, type }, { merge: true }); showToast('Fund type saved');
+}
+
+// ---------------- statements: upload & review ----------------
+function r3EventKey(e, occ) { return r3DocId([e.amc, e.fundKey.split(':')[1], e.date, e.kind, e.sub, (e.units || 0).toFixed(1), Math.round(e.amount || 0)].join('|')) + '_' + occ; }
+async function r3HandleFiles(files) {
+  const box = document.getElementById('r3-review'); if (!files || !files.length) return;
+  if (typeof pdfjsLib === 'undefined') { box.innerHTML = '<p class="dn">The PDF reader did not load. Check your internet connection and refresh.</p>'; return; }
+  box.innerHTML = '<p class="r3-note">Reading statements…</p>'; R3.pendingReview = [];
+  const existing = new Set(R3.events.map(e => e.id));
+  for (const file of files) {
+    try {
+      const lines = await pdfToLines(pdfjsLib, new Uint8Array(await file.arrayBuffer()));
+      const r = STMT.parse(lines);
+      if (r.error) { R3.pendingReview.push({ file: file.name, error: r.error }); continue; }
+      const occ = {}; r.events.forEach(e => { const base = r3EventKey(e, 0).replace(/_0$/, ''); occ[base] = (occ[base] || 0) + 1; e.id = base + '_' + occ[base]; e.isNew = !existing.has(e.id); });
+      R3.pendingReview.push({ file: file.name, r });
+    } catch (err) { R3.pendingReview.push({ file: file.name, error: 'Could not read this PDF: ' + err.message }); }
+  }
+  r3RenderReview();
+}
+function r3RenderReview() {
+  const box = document.getElementById('r3-review'); const items = R3.pendingReview; if (!items.length) { box.innerHTML = ''; return; }
+  const totalNew = items.reduce((s, it) => s + (it.r ? it.r.events.filter(e => e.isNew).length : 0), 0);
+  box.innerHTML = items.map(it => { if (it.error) return `<div class="r3-amc-block"><b>${r3esc(it.file)}</b><p class="dn">${r3esc(it.error)}</p></div>`;
+    const r = it.r; const keys = [...new Set([...Object.keys(r.closings), ...r.events.map(e => e.fundKey)])];
+    return `<div class="r3-amc-block"><div class="r3-head" style="margin:0"><b>${r.amc} · ${r3esc(it.file)}</b><span class="r3-note">${{ hbl: 'HBL statement of account', 'ubl-full': 'UBL transaction statement', 'ubl-fund': 'UBL fund statement', 'ubl-summary': 'UBL portfolio summary (balances only)', mcb: 'MCB statement' }[r.format]} · ${r.period.from ? fmtDate(r.period.from) + ' – ' : 'as of '}${fmtDate(r.period.to)}</span></div>
+      <div class="table-wrap"><table class="r3-table" style="min-width:620px;margin-top:8px"><thead><tr><th>Fund</th><th>New transactions</th><th>Already saved</th><th>Closing units</th><th>Unit check</th><th>Value</th></tr></thead><tbody>
+      ${keys.map(k => { const ev = r.events.filter(e => e.fundKey === k); const c = r.closings[k] || {}; const u = r.unitCheck[k]; const ok = c.units == null || u == null || Math.abs(u - c.units) < (r.amc === 'UBL' ? 0.06 : 0.002);
+        return `<tr><td class="l">${r3esc(r3TitleCase((r.names || {})[k] || (ev[0] || {}).fundName || k))}</td><td>${ev.filter(e => e.isNew).length}</td><td>${ev.filter(e => !e.isNew).length}</td><td>${c.units != null ? c.units.toLocaleString('en-PK', { maximumFractionDigits: 4 }) : '—'}</td><td>${ok ? '<span class="r3-ok">✓ matches</span>' : '<span class="r3-warn">differs</span>'}</td><td>${c.value != null ? r3n(c.value) : '—'}</td></tr>`; }).join('')}</tbody></table></div>
+      ${r.warnings.length ? `<ul class="r3-list r3-warn">${r.warnings.slice(0, 6).map(w => '<li>' + r3esc(w) + '</li>').join('')}</ul>` : ''}</div>`; }).join('') +
+    `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="r3-btn primary" onclick="r3SaveReview()">Save ${totalNew} new transaction${totalNew === 1 ? '' : 's'} and balances</button><button type="button" class="r3-btn" onclick="R3.pendingReview=[];r3RenderReview();document.getElementById('r3-file').value=''">Cancel</button><span class="r3-note">Duplicates are skipped automatically.</span></div>`;
+}
+async function r3SaveReview() {
+  if (!db) { showToast('Not connected to Firebase'); return; }
+  try {
+    for (const it of R3.pendingReview) {
+      if (!it.r) continue; const r = it.r;
+      const fresh = r.events.filter(e => e.isNew);
+      for (let i = 0; i < fresh.length; i += 400) {
+        const b = db.batch();
+        fresh.slice(i, i + 400).forEach(e => { const { isNew, id, ...data } = e; b.set(db.collection('stmt_events').doc(id), data); });
+        await b.commit();
+      }
+      const clean = o => JSON.parse(JSON.stringify(o || {}));
+      await db.collection('stmt_imports').add({ amc: r.amc, format: r.format, period: r.period, closings: clean(r.closings), openings: clean(r.openings), names: clean(r.names), fileName: it.file, newEvents: fresh.length, totalEvents: r.events.length, warnings: r.warnings.slice(0, 20), importedAt: new Date().toISOString() });
+    }
+    R3.pendingReview = []; r3RenderReview(); document.getElementById('r3-file').value = '';
+    showToast('✅ Statements saved');
+  } catch (e) { showToast('❌ Could not save: ' + e.message, 5000); }
+}
+
+// ---------------- coverage ----------------
+function r3Coverage() {
+  const out = {};
+  R3.imports.forEach(im => { if (!im.period || !im.period.from || !im.period.to) return; (out[im.amc] = out[im.amc] || { periods: [] }).periods.push([im.period.from, im.period.to]); });
+  Object.values(out).forEach(c => {
+    c.periods.sort((a, b) => a[0].localeCompare(b[0])); const merged = [];
+    c.periods.forEach(p => { const m = merged[merged.length - 1]; if (m && new Date(p[0]) - new Date(m[1]) <= 864e5) { if (p[1] > m[1]) m[1] = p[1]; } else merged.push([...p]); });
+    c.merged = merged; c.gaps = [];
+    for (let i = 1; i < merged.length; i++) { const a = new Date(merged[i - 1][1]); a.setDate(a.getDate() + 1); const b = new Date(merged[i][0]); b.setDate(b.getDate() - 1); c.gaps.push([a.toISOString().slice(0, 10), b.toISOString().slice(0, 10)]); }
+    c.start = merged[0][0]; c.end = merged[merged.length - 1][1];
+  });
+  return out;
+}
+
+// ---------------- reconciliation ----------------
+function r3AppFlows(sorted, amc) {
+  const f = R3_FIELD[amc]; const out = [];
+  for (let i = 1; i < sorted.length; i++) { const r = sorted[i], p = sorted[i - 1];
+    if (!['New Investment', 'Redemption', 'Transfer/Rebalance'].includes(r.entryType) || r.date < R3_START || r.reconAdjust) continue;
+    const d = Math.round((r[f] || 0) - (p[f] || 0)); if (Math.abs(d) >= 1) out.push({ id: r.id, date: r.date, amt: d, type: r.entryType }); }
+  return out;
+}
+function r3StmtFlows(amc) {
+  return R3.events.filter(e => e.amc === amc && e.date >= R3_START && ((e.kind === 'buy' && (e.sub === 'investment' || e.sub === 'cgtRefund')) || (e.kind === 'sell' && e.sub === 'redemption')))
+    .map(e => ({ date: e.date, amt: e.kind === 'sell' ? -Math.round(e.net != null ? e.net : e.amount) : Math.round(e.amount), sub: e.sub, fund: e.fundName }));
+}
+function r3ReconAll(sorted) {
+  const out = {}; if (!R3.funds.length || !sorted.length) return out; const last = sorted[sorted.length - 1]; const { closings } = r3Merged();
+  ['HBL', 'UBL', 'MCB'].forEach(amc => {
+    const fs = R3.funds.filter(f => f.amc === amc); if (!fs.length) return;
+    const stmtValue = fs.reduce((s, f) => s + f.value, 0);
+    const lastTx = R3.events.filter(e => e.amc === amc).map(e => e.date).sort().pop() || '';
+    const navDate = fs.map(f => f.navDate).filter(Boolean).sort().pop() || '';
+    const app = r3AppFlows(sorted, amc), st = r3StmtFlows(amc); const used = new Set(); const appUn = [];
+    const dd = (a, b) => Math.abs((new Date(a) - new Date(b)) / 864e5);
+    app.forEach(x => { const j = st.findIndex((y, k) => !used.has(k) && Math.abs(y.amt - x.amt) <= Math.max(2, Math.abs(x.amt) * 0.003) && dd(x.date, y.date) <= 7); if (j >= 0) used.add(j); else appUn.push(x); });
+    // combine 2–3 entries on one side that add up to one entry on the other (same direction, within 7 days)
+    const usedA = new Set(app.filter(x => !appUn.includes(x)).map(x => x.id + x.amt));
+    const tol = v => Math.max(2, Math.abs(v) * 0.003);
+    const combo = (target, pool, isFree) => { const c = pool.map((p, i) => i).filter(i => isFree(i) && Math.sign(pool[i].amt) === Math.sign(target.amt) && dd(pool[i].date, target.date) <= 7);
+      for (let a = 0; a < c.length; a++) for (let b = a + 1; b < c.length; b++) { if (Math.abs(pool[c[a]].amt + pool[c[b]].amt - target.amt) <= tol(target.amt)) return [c[a], c[b]];
+        for (let d = b + 1; d < c.length; d++) if (Math.abs(pool[c[a]].amt + pool[c[b]].amt + pool[c[d]].amt - target.amt) <= tol(target.amt)) return [c[a], c[b], c[d]]; } return null; };
+    for (let i = appUn.length - 1; i >= 0; i--) { const m = combo(appUn[i], st, k => !used.has(k)); if (m) { m.forEach(k => used.add(k)); appUn.splice(i, 1); } }
+    st.forEach((y, k) => { if (used.has(k)) return; const m = combo(y, appUn, () => true); if (m) { used.add(k); m.sort((a, b) => b - a).forEach(j => appUn.splice(j, 1)); } });
+    const stUn = st.filter((y, k) => !used.has(k));
+    const dateDiff = []; const takenA = new Set();
+    stUn.forEach(y => { const j = appUn.findIndex((x, i) => !takenA.has(i) && Math.abs(x.amt - y.amt) <= tol(y.amt) && dd(x.date, y.date) <= 45); if (j >= 0) { takenA.add(j); dateDiff.push({ st: y, app: appUn[j] }); } });
+    const pending = appUn.filter(x => x.date >= lastTx && x.date >= (navDate || lastTx)); const appOther = appUn.filter(x => !pending.includes(x));
+    const target = stmtValue + pending.reduce((s, x) => s + x.amt, 0);
+    const appValue = last[R3_FIELD[amc]] || 0; const delta = Math.round(target - appValue);
+    const sugCap = Math.round(stUn.reduce((s, x) => s + x.amt, 0) - appOther.reduce((s, x) => s + x.amt, 0));
+    const decided = R3.recon.find(l => l.amc === amc && l.stmtValue === Math.round(stmtValue) && !l.undone);
+    const defCap = (Math.sign(sugCap) === Math.sign(delta) && Math.abs(sugCap) <= Math.abs(delta)) ? sugCap : 0;
+    out[amc] = { stmtValue, navDate, appValue, target, delta, pending, appOther, stUn, dateDiff, matched: st.length - stUn.length, sugCap, defCap, decided };
+  });
+  return out;
+}
+function r3RenderStatements() {
+  const cv = document.getElementById('r3-coverage'); if (!cv) return;
+  const cov = r3Coverage();
+  cv.innerHTML = Object.keys(cov).length ? Object.entries(cov).map(([amc, c]) => `<div class="r3-act"><b style="width:60px">${amc}</b><span class="t">${c.merged.map(m => fmtDate(m[0]) + ' – ' + fmtDate(m[1])).join(' · ')}</span><span>${c.gaps.length ? '<span class="r3-warn">Gap: ' + c.gaps.map(g => fmtDate(g[0]) + ' – ' + fmtDate(g[1])).join(', ') + '</span>' : '<span class="r3-ok">✓ No gaps</span>'}</span></div>`).join('') +
+    `<p class="r3-note" style="margin-top:8px">${R3.imports.length} statement${R3.imports.length === 1 ? '' : 's'} saved · ${R3.events.length} transactions</p>` : '<p class="r3-note">No statements saved yet.</p>';
+  const rc = document.getElementById('r3-recon'); const sorted = typeof allRecords !== 'undefined' ? sortedAsc() : [];
+  const all = r3ReconAll(sorted);
+  rc.innerHTML = Object.keys(all).length ? Object.entries(all).map(([amc, r]) => {
+    const matched = Math.abs(r.delta) < 1;
+    const li = (arr, f) => arr.length ? `<ul class="r3-list">${arr.slice(0, 12).map(f).join('')}${arr.length > 12 ? '<li>… ' + (arr.length - 12) + ' more</li>' : ''}</ul>` : '<p class="r3-note" style="margin-left:16px">None</p>';
+    return `<div class="r3-amc-block"><div class="r3-head" style="margin:0"><b>${amc} Funds</b>${matched ? '<span class="r3-ok">✓ Matched</span>' : r.decided ? `<span class="r3-note">${r.decided.action === 'keep' ? 'You kept your figure' : 'Accepted'} on ${fmtDate(r.decided.at.slice(0, 10))}</span>` : '<span class="r3-warn">Difference to review</span>'}</div>
+      <div class="r3-kv"><div>Statement value<b>${r3n(r.stmtValue)}</b><span>${r.navDate ? fmtDate(r.navDate) : ''}</span></div><div>Your records<b>${r3n(r.appValue)}</b></div><div>Pending, not yet on statement<b>${r3s(r.pending.reduce((s, x) => s + x.amt, 0))}</b></div><div>Difference<b class="${r3cls(r.delta)}">${r3s(r.delta)}</b></div></div>
+      <details><summary class="r3-note" style="cursor:pointer">Transaction check: ${r.matched} matched · ${r.stUn.length} on statement not in records · ${r.appOther.length} in records not on statement · ${r.pending.length} pending</summary>
+        ${r.dateDiff.length ? `<p style="font-size:12px;margin-top:8px"><b>Same amount, different date</b> <span class="r3-note">(probably the same transaction — check the date in your records)</span></p>${li(r.dateDiff, x => `<li>${r3s(x.st.amt)} · statement ${fmtDate(x.st.date)} · your records ${fmtDate(x.app.date)}</li>`)}` : ''}
+        <p style="font-size:12px;margin-top:8px"><b>On statement, not in your records</b></p>${li(r.stUn, x => `<li>${fmtDate(x.date)} · ${r3esc(r3TitleCase(x.fund))} · ${x.sub === 'cgtRefund' ? 'CGT refund' : x.sub} ${r3s(x.amt)}</li>`)}
+        <p style="font-size:12px;margin-top:8px"><b>In your records, not on statement</b></p>${li(r.appOther, x => `<li>${fmtDate(x.date)} · ${x.type} ${r3s(x.amt)}</li>`)}
+        <p style="font-size:12px;margin-top:8px"><b>Pending (entered after the statement's last transaction)</b></p>${li(r.pending, x => `<li>${fmtDate(x.date)} · ${x.type} ${r3s(x.amt)}</li>`)}</details>
+      ${matched ? '' : `<div class="r3-split"><span>Record the ${r3s(r.delta)} difference as</span>
+        <label>capital <input type="number" id="r3-cap-${amc}" value="${r.defCap}" oninput="document.getElementById('r3-prof-${amc}').textContent=r3s(${r.delta}-(+this.value||0))"></label>
+        <span>+ profit <b id="r3-prof-${amc}">${r3s(r.delta - r.defCap)}</b></span>
+        <button type="button" class="r3-btn primary" onclick="r3Accept('${amc}')">Accept statement figure</button><button type="button" class="r3-btn" onclick="r3Keep('${amc}')">Keep my figure</button></div>
+        <p class="r3-note" style="margin-top:6px">Suggested capital = statement money in/out not found in your records: ${r3s(r.sugCap)}. Change it if you know better. Accepting adds dated-today entries to your records; it can be undone below.</p>`}</div>`;
+  }).join('') : '<p class="r3-note">Upload statements to compare them with your records.</p>';
+  // decisions log
+  if (R3.recon.length) rc.innerHTML += `<h3 style="font-size:14px;margin:12px 0 6px">Decisions</h3>` + R3.recon.slice(0, 15).map(l => `<div class="r3-act"><b style="width:60px">${l.amc}</b><span class="t">${l.action === 'keep' ? 'Kept my figure' : 'Accepted statement: capital ' + r3s(l.capital) + ', profit ' + r3s(l.profit)}${l.undone ? ' · <i>undone</i>' : ''}</span><span class="d">${fmtDate((l.at || '').slice(0, 10))}</span>${!l.undone && l.action === 'accept' ? `<button type="button" class="r3-btn" onclick="r3Undo('${l.id}')">Undo</button>` : ''}</div>`).join('');
+  // history since 1 Jul 2025
+  const hs = document.getElementById('r3-history');
+  if (hs) hs.innerHTML = R3.funds.length ? `<div class="table-wrap"><table class="r3-table" style="min-width:820px"><thead><tr><th>AMC</th><th>Opening (1 Jul 2025)</th><th>Money in</th><th>Money out</th><th>Value now</th><th>Total profit</th><th>Realised gains</th><th>Dividends</th><th>CGT paid</th><th>CGT refunded</th></tr></thead><tbody>${['HBL', 'UBL', 'MCB'].map(amc => {
+      const fs = R3.funds.filter(f => f.amc === amc); if (!fs.length) return '';
+      const open = fs.reduce((s, f) => s + f.lots.filter(l => l.opening).reduce((a, l) => a + 0, 0), 0) + r3OpeningValue(amc);
+      const inn = fs.reduce((s, f) => s + f.invested, 0), out = fs.reduce((s, f) => s + f.redeemedNet, 0), val = fs.reduce((s, f) => s + f.value, 0);
+      const cg = fs.reduce((s, f) => s + f.cgtPaid, 0), rf = fs.reduce((s, f) => s + f.cgtRefund, 0), rz = fs.reduce((s, f) => s + f.realized, 0), dv = fs.reduce((s, f) => s + f.dividends, 0);
+      const prof = val + out - inn - open;
+      return `<tr><td class="l"><b>${amc}</b></td><td>${r3n(open)}</td><td>${r3n(inn)}</td><td>${r3n(out)}</td><td>${r3n(val)}</td><td class="${r3cls(prof)}"><b>${r3s(prof)}</b></td><td class="${r3cls(rz)}">${r3s(rz)}</td><td>${r3n(dv)}</td><td class="dn">${r3n(cg)}</td><td>${r3n(rf)}</td></tr>`; }).join('')}</tbody></table></div>
+    <p class="r3-note" style="margin-top:8px">Total profit = value now + money out − money in − opening value. Money in includes CGT refunds (counted as capital). Money out is cash received after CGT, so this profit is after tax. Conversions between funds of the same AMC are not money in or out.</p>` : '<p class="r3-note">Upload statements from 1 July 2025 to see this.</p>';
+}
+function r3OpeningValue(amc) { const { openings } = r3Merged(); let v = 0;
+  R3.funds.filter(f => f.amc === amc).forEach(f => { const o = openings[f.key]; if (o && o.units > 0) { const lot0 = (f.key === 'HBL:HBL-CF') ? 103.1993 : (f.nav || 0); v += o.units * lot0; } }); return v; }
+
+// Build and save an adjustment entry exactly like the New Entry form would
+async function r3SaveAdjust(type, field, delta, notes) {
+  const last = getLastRecord(); const v = { hblFund: last.hblFund || 0, ublFund: last.ublFund || 0, mcbFund: last.mcbFund || 0, binanceFund: last.binanceFund || 0, ublBank: last.ublBank || 0, cash: last.cash || 0 };
+  v[field] = Math.round(v[field] + delta);
+  const newTotal = v.hblFund + v.ublFund + v.mcbFund + v.binanceFund + v.ublBank + v.cash; const change = newTotal - last.total;
+  const run = computeRunning(sortedAsc()); let cumC = (run[last.id] || {}).capital ?? last.cumCapital, cumP = (run[last.id] || {}).profit ?? last.cumProfit;
+  let fromProfit = 0, fromCapital = 0;
+  if (type === 'Redemption') { fromProfit = Math.min(Math.abs(change), Math.max(0, cumP)); fromCapital = Math.abs(change) - fromProfit; cumP -= fromProfit; cumC -= fromCapital; }
+  if (type === 'New Investment') cumC += change;
+  if (type === 'Profit Update') cumP += change;
+  const entry = { date: today(), entryType: type, ...v, hblCGT: 0, ublCGT: 0, mcbCGT: 0, totalCGT: 0, total: newTotal, change, netChange: change,
+    amountInOut: type === 'Profit Update' ? null : change, fromProfit, fromCapital, cumCapital: Math.round(cumC), cumProfit: Math.round(cumP), profitTracking: true, notes, rowNum: Date.now(), transferDetails: null, reconAdjust: true };
+  const ref = await db.collection('records').add(entry); allRecords.push({ ...entry, id: ref.id }); return ref.id;
+}
+async function r3Accept(amc) {
+  const r = r3ReconAll(sortedAsc())[amc]; if (!r || !db) return;
+  const cap = Math.round(+document.getElementById('r3-cap-' + amc).value || 0); const prof = r.delta - cap;
+  if (!confirm(`${amc}: add today-dated entries — capital ${r3s(cap)} and profit ${r3s(prof)} — so your records match the statement (${r3n(r.target)})?`)) return;
+  try {
+    const ids = []; const f = R3_FIELD[amc];
+    if (cap > 0) ids.push(await r3SaveAdjust('New Investment', f, cap, `${amc} statement reconciliation — capital not recorded before`));
+    if (cap < 0) ids.push(await r3SaveAdjust('Redemption', f, cap, `${amc} statement reconciliation — withdrawal not recorded before`));
+    if (prof !== 0) ids.push(await r3SaveAdjust('Profit Update', f, prof, `${amc} statement reconciliation — profit difference`));
+    await db.collection('recon_log').add({ amc, action: 'accept', capital: cap, profit: prof, stmtValue: Math.round(r.stmtValue), recordIds: ids, at: new Date().toISOString() });
+    showToast('✅ ' + amc + ' now matches the statement');
+  } catch (e) { showToast('❌ ' + e.message, 5000); }
+}
+async function r3Keep(amc) {
+  const r = r3ReconAll(sortedAsc())[amc]; if (!r || !db) return;
+  await db.collection('recon_log').add({ amc, action: 'keep', delta: r.delta, stmtValue: Math.round(r.stmtValue), at: new Date().toISOString() }); showToast('Kept your figure for ' + amc);
+}
+async function r3Undo(id) {
+  const l = R3.recon.find(x => x.id === id); if (!l || !db) return;
+  if (!confirm('Undo this reconciliation? The entries it added will be deleted.')) return;
+  for (const rid of (l.recordIds || [])) await db.collection('records').doc(rid).delete();
+  await db.collection('recon_log').doc(id).update({ undone: true, undoneAt: new Date().toISOString() }); showToast('Undone');
+}
+
+if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
 </body>
 </html>
