@@ -430,7 +430,7 @@ tbody tr:last-child td { border: none; }
         <div class="r3-hero-tiles">
           <div class="r3-tile"><div class="r3-tl">Capital invested</div><div class="r3-tv" id="h-capital">—</div><div class="r3-ts">Net of redemptions</div></div>
           <button type="button" class="r3-tile r3-tile-btn" id="h-profit-btn" onclick="r3ToggleBreakdown()" aria-expanded="false">
-            <div class="r3-tl">Total profit <span id="h-chev">▼</span></div><div class="r3-tv up" id="h-profit">—</div><div class="r3-ts" id="h-profit-hint">Net of CGT, from 14 May · click for funds</div>
+            <div class="r3-tl">Total profit <span id="h-chev">▼</span></div><div class="r3-tv up" id="h-profit">—</div><div class="r3-ts" id="h-profit-hint">Net worth − capital · after CGT · click for funds</div>
           </button>
           <div class="r3-tile"><div class="r3-tl">CGT paid (statements)</div><div class="r3-tv r3-red" id="h-cgt">—</div><div class="r3-ts" id="h-cgt-sub"></div></div>
           <div class="r3-tile"><div class="r3-tl">Annualised return</div><div class="r3-tv r3-green" id="h-ann">—</div><div class="r3-ts" id="h-ann-sub"></div></div>
@@ -815,15 +815,19 @@ const badgeClass = t => ({
 const byDateRow = (a,b) => (a.date !== b.date ? a.date.localeCompare(b.date) : (a.rowNum||0) - (b.rowNum||0));
 const sortedAsc = () => [...allRecords].sort(byDateRow);
 const BASE_CAPITAL = 12297409; // total at 4 May 2026, the capital base for profit tracking from 14 May
+// Profit still in the portfolio after a list of records (net worth − capital)
+function profitPoolOf(list) {
+  if (!list.length) return 0; const run = computeRunning(list); const l = list[list.length-1];
+  return Math.round(((run[l.id]||{}).profit ?? l.cumProfit) || 0);
+}
 // Running capital and profit per record, same method as the dashboard
 function computeRunning(sorted) {
   let cap = BASE_CAPITAL, prof = 0; const out = {};
   sorted.forEach(r => {
-    if (r.entryType === 'Profit Update' && r.profitTracking) prof += (r.change||0) - (r.totalCGT||0);
-    if (r.entryType === 'Redemption') prof -= (r.fromProfit||0);
     if (r.profitTracking && r.entryType === 'New Investment') cap += (r.amountInOut||0);
     if (r.profitTracking && r.entryType === 'Redemption') cap -= (r.fromCapital||0);
-    out[r.id] = r.profitTracking ? { capital: Math.round(cap), profit: Math.round(prof) } : { capital: r.cumCapital, profit: r.cumProfit };
+    // Profit = what the portfolio holds above capital. Matches the statements by definition.
+    out[r.id] = r.profitTracking ? { capital: Math.round(cap), profit: Math.round((r.total||0) - cap) } : { capital: r.cumCapital, profit: r.cumProfit };
   });
   return out;
 }
@@ -843,7 +847,7 @@ function computeDaily(sorted) {
       const gross = Math.round(endTotal - prevTotal - flows);
       const cgt = rs.filter(r => r.entryType === 'Profit Update').reduce((s,r) => s + (r.totalCGT||0), 0);
       const tx = rs.some(r => r.entryType !== 'Profit Update');
-      if (hasUpdate || gross !== 0) days[d] = { gross, cgt, net: gross - cgt, tx };
+      if (hasUpdate || gross !== 0) days[d] = { gross, cgt, net: gross, tx }; // CGT already inside the values: shown for information only
     }
     prevTotal = endTotal;
   });
@@ -997,8 +1001,8 @@ function renderRecords() {
       <td>${fmt(r.ublBank)}</td>
       <td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
-        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':(r.change||0)<0?'#dc2626':(r.change||0)>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
       </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
@@ -1045,7 +1049,7 @@ function renderAnalytics(sorted) {
     if (r.entryType==='New Investment') months[m].invested += r.amountInOut||0;
     if (r.entryType==='Redemption') months[m].redeemed += Math.abs(r.change||0);
     if (r.entryType==='Profit Update' && r.profitTracking) {
-      months[m].profit += r.netChange||0;
+      months[m].profit += r.change||0;
       months[m].cgt += r.totalCGT||0;
     }
   });
@@ -1077,18 +1081,18 @@ function renderAnalytics(sorted) {
   let analyticsCumProfit = 0;
   sorted.forEach(r => {
     if (r.entryType === 'Profit Update' && r.profitTracking) {
-      analyticsCumProfit += (r.change||0) - (r.totalCGT||0);
+      analyticsCumProfit += 0;
     }
     if (r.entryType === 'Redemption') analyticsCumProfit -= (r.fromProfit||0);
   });
-  analyticsCumProfit = Math.round(analyticsCumProfit*100)/100;
+  analyticsCumProfit = profitPoolOf(sorted);
   let analyticsCumCapital = 12297409;
   sorted.forEach(r => {
     if (r.entryType==='New Investment' && r.profitTracking) analyticsCumCapital += (r.amountInOut||0);
     if (r.entryType==='Redemption' && r.profitTracking) analyticsCumCapital -= (r.fromCapital||0);
   });
   const analyticsNetProfitForReturn = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking)
-    .reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
+    .reduce((s,r) => s + (r.change||0), 0);
   const analyticsProfitDays = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date('2026-05-14T00:00:00')) / (1000*60*60*24)));
   const analyticsDaysSinceStart = Math.max(1, Math.round((new Date(sorted[sorted.length-1].date+'T00:00:00') - new Date(sorted[0].date+'T00:00:00')) / (1000*60*60*24)));
   // Weighted average capital
@@ -1209,7 +1213,7 @@ function switchMomChart(mode, el) {
     months[m].label=d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
     if (r.entryType==='New Investment') months[m].invested+=r.amountInOut||0;
     if (r.entryType==='Redemption') months[m].redeemed+=Math.abs(r.change||0);
-    if (r.entryType==='Profit Update'&&r.profitTracking){months[m].profit+=r.netChange||0;months[m].cgt+=r.totalCGT||0;}
+    if (r.entryType==='Profit Update'&&r.profitTracking){months[m].profit+=r.change||0;months[m].cgt+=r.totalCGT||0;}
   });
   renderMomChart(months, Object.keys(months).sort());
 }
@@ -1237,8 +1241,8 @@ function renderSearch() {
       <td>${r.binanceFund>0?fmt(r.binanceFund):'—'}</td>
       <td>${fmt(r.ublBank)}</td><td>${fmt(r.cash)}</td>
       <td><strong>${fmt(r.total)}</strong></td>
-      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':((r.change||0)-(r.totalCGT||0))<0?'#dc2626':((r.change||0)-(r.totalCGT||0))>0?'#16a34a':'var(--text2)'}">
-        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0)-(r.totalCGT||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
+      <td><span style="color:${(r.entryType==='Transfer/Rebalance'||r.entryType==='CGT Settlement')?'var(--amber)':(r.change||0)<0?'#dc2626':(r.change||0)>0?'#16a34a':'var(--text2)'}">
+        ${r.entryType==='Transfer/Rebalance'?'⇄ Rebalance':r.entryType==='CGT Settlement'?'🏦 CGT Settled':(()=>{const n=(r.change||0);return n<0?'('+fmt(Math.abs(n))+')':n>0?'+'+fmt(n):'—';})()}
       </span></td>
       <td class="dn">${r.hblCGT>0?fmt(r.hblCGT):'—'}</td>
       <td class="dn">${r.ublCGT>0?fmt(r.ublCGT):'—'}</td>
@@ -1345,15 +1349,15 @@ function buildEntryForm(existing) {
 
   const cgtFields = selectedTxType === 'Profit Update' ? `
     <div class="form-group">
-      <label>HBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
+      <label>HBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">for information only · already in the fund value</span></label>
       <input type="number" id="f-hblcgt" value="${vals.hblCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>UBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
+      <label>UBL CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">for information only · already in the fund value</span></label>
       <input type="number" id="f-ublcgt" value="${vals.ublCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>
     <div class="form-group">
-      <label>MCB CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">usually 0 · actual CGT comes from statements</span></label>
+      <label>MCB CGT deducted today (₨) <span style="color:var(--text3);font-size:11px">for information only · already in the fund value</span></label>
       <input type="number" id="f-mcbcgt" value="${vals.mcbCGT||''}" placeholder="auto" oninput="updateCalcPreview()" step="0.01">
     </div>` : `<input type="hidden" id="f-hblcgt" value="0"><input type="hidden" id="f-ublcgt" value="0"><input type="hidden" id="f-mcbcgt" value="0">`;
 
@@ -1425,7 +1429,7 @@ function updateCalcPreview() {
   const totalCGT = (parseFloat(document.getElementById('f-hblcgt')?.value)||0) +
                    (parseFloat(document.getElementById('f-ublcgt')?.value)||0) +
                    (parseFloat(document.getElementById('f-mcbcgt')?.value)||0);
-  const netChange = selectedTxType === 'Profit Update' ? grossChange - totalCGT : grossChange;
+  const netChange = grossChange; // CGT fields are for information; the AMC already took real CGT out of the values
 
   let previewHTML = `
     <div class="calc-item"><div class="cl">New total</div><div class="cv">${fmt(newTotal)}</div></div>
@@ -1451,10 +1455,8 @@ function updateCalcPreview() {
     const sortedForPreview = recordsBeforeBase();
     let previewProfit = 0;
     sortedForPreview.forEach(r => {
-      if (r.entryType==='Profit Update'&&r.profitTracking) previewProfit += (r.change||0)-(r.totalCGT||0);
-      if (r.entryType==='Redemption') previewProfit -= (r.fromProfit||0);
     });
-    previewProfit = Math.max(0, Math.round(previewProfit));
+    previewProfit = Math.max(0, profitPoolOf(sortedForPreview));
     const fromP = Math.min(redeemAmt, previewProfit);
     const fromC = redeemAmt - fromP;
     previewHTML += `
@@ -1549,7 +1551,7 @@ async function saveEntry() {
   let calcCapital = 12297409; // base capital before profit tracking (row 30)
   recordsForCalc.forEach(r => {
     if (r.entryType === 'Profit Update' && r.profitTracking) {
-      calcProfit += (r.change||0) - (r.totalCGT||0);
+      calcProfit += 0;
     }
     if (r.entryType === 'New Investment' && r.profitTracking) {
       calcCapital += Math.abs(r.amountInOut||0);
@@ -1561,7 +1563,7 @@ async function saveEntry() {
       if (r.profitTracking) calcCapital -= (r.fromCapital||0);
     }
   });
-  calcProfit = Math.round(calcProfit * 100) / 100;
+  calcProfit = profitPoolOf(recordsForCalc);
   calcCapital = Math.round(calcCapital);
 
   // FIFO redemption calc using recalculated profit pool
@@ -1582,8 +1584,7 @@ async function saveEntry() {
     cumCapital -= fromCapital;
   }
   if (selectedTxType === 'Profit Update' && profitTracking) {
-    const netChange = grossChange - totalCGT;
-    cumProfit += netChange;
+    cumProfit += grossChange;
   }
   // CGT Settlement: fund values drop by tax amount, but no P&L impact — cumProfit/cumCapital unchanged
 
@@ -1597,7 +1598,7 @@ async function saveEntry() {
     totalCGT: selectedTxType==='CGT Settlement' ? 0 : totalCGT,
     total: newTotal,
     change: grossChange,
-    netChange: selectedTxType==='Profit Update' ? Math.round((grossChange-totalCGT)*100)/100 : selectedTxType==='CGT Settlement' ? 0 : grossChange,
+    netChange: selectedTxType==='CGT Settlement' ? 0 : grossChange,
     amountInOut: (selectedTxType !== 'Profit Update' && selectedTxType !== 'CGT Settlement') ? grossChange : null,
     fromProfit, fromCapital,
     cumCapital: Math.round(cumCapital), cumProfit: Math.round(cumProfit),
@@ -1636,10 +1637,8 @@ function showConfirmModal(entry, fromP, fromC, prevProfit) {
   const sortedForConfirm = recordsBeforeBase();
   let confirmProfit = 0;
   sortedForConfirm.forEach(r => {
-    if (r.entryType==='Profit Update'&&r.profitTracking) confirmProfit += (r.change||0)-(r.totalCGT||0);
-    if (r.entryType==='Redemption') confirmProfit -= (r.fromProfit||0);
   });
-  confirmProfit = Math.max(0, Math.round(confirmProfit));
+  confirmProfit = Math.max(0, profitPoolOf(sortedForConfirm));
   document.getElementById('confirm-details').innerHTML = `
     <div class="confirm-row"><span>Redemption amount</span><span class="dn">${fmt(Math.abs(entry.change))}</span></div>
     <div class="confirm-row"><span>Available profit pool</span><span class="up">${fmt(confirmProfit)}</span></div>
@@ -1687,7 +1686,7 @@ Save anyway?`;
         await db.collection('records').doc(editingId).update(entry);
         if (next) {
           const nc = Math.round((next.change||0) - delta);
-          await db.collection('records').doc(next.id).update({ change: nc, netChange: Math.round((nc - (next.totalCGT||0))*100)/100 });
+          await db.collection('records').doc(next.id).update({ change: nc, netChange: nc });
           showToast('✅ Entry updated · profit update of ' + fmtDate(next.date) + ' adjusted by ' + (delta > 0 ? '−' : '+') + Math.abs(delta).toLocaleString('en-PK'));
         } else showToast('✅ Entry updated');
       } else {
@@ -1751,7 +1750,7 @@ function renderMonthlyReturnChart(sorted) {
     if (!entries.length) return;
 
     // Net profit for this month
-    const netProfit = entries.reduce((s,r) => s + (r.change||0) - (r.totalCGT||0), 0);
+    const netProfit = entries.reduce((s,r) => s + (r.change||0), 0);
 
     // Days in this month's data (first to last entry)
     const firstDate = new Date(entries[0].date+'T00:00:00');
@@ -1967,8 +1966,8 @@ function exportPDF() {
   const totRed = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+Math.abs(r.change||0),0);
   const totFromProfit = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromProfit||0),0);
   const totFromCapital = sorted.filter(r=>r.entryType==='Redemption').reduce((s,r)=>s+(r.fromCapital||0),0);
-  const netProfit = sorted.filter(r=>r.entryType==='Profit Update'&&r.profitTracking).reduce((s,r)=>s+(r.change||0)-(r.totalCGT||0),0);
-  const remainingProfit = netProfit - totFromProfit;
+  const remainingProfit = profitPoolOf(sorted);
+  const netProfit = remainingProfit + totFromProfit;
   const hblCGT = sorted.reduce((s,r)=>s+(r.hblCGT||0),0);
   const ublCGT = sorted.reduce((s,r)=>s+(r.ublCGT||0),0);
   const mcbCGT = sorted.reduce((s,r)=>s+(r.mcbCGT||0),0);
@@ -2017,7 +2016,7 @@ function exportPDF() {
 
   let recordRows = '';
   filtered.forEach(r=>{
-    const net=(r.change||0)-(r.totalCGT||0);
+    const net=(r.change||0);
     const typeColors={'Profit Update':'#2563eb','New Investment':'#16a34a','Redemption':'#dc2626','Transfer/Rebalance':'#d97706','CGT Settlement':'#d97706'};
     recordRows+=`<tr>
       <td>${fmtDate(r.date)}</td>
@@ -2672,7 +2671,7 @@ function renderDashboard(sorted) {
   // annualised return — same method as before (weighted average capital from 14 May)
   const profitStart = new Date('2026-05-14T00:00:00'); const lastDate = new Date(last.date + 'T00:00:00');
   const pDays = Math.max(1, Math.round((lastDate - profitStart) / 864e5));
-  const netForReturn = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking).reduce((s, r) => s + (r.change || 0) - (r.totalCGT || 0), 0);
+  const netForReturn = sorted.filter(r => r.entryType === 'Profit Update' && r.profitTracking).reduce((s, r) => s + (r.change || 0), 0);
   const ps = sorted.filter(r => r.date >= '2026-05-14'); let wsum = 0;
   for (let i = 0; i < ps.length; i++) { const nd = i + 1 < ps.length ? new Date(ps[i + 1].date + 'T00:00:00') : lastDate; wsum += ((run[ps[i].id] || {}).capital || ps[i].cumCapital || 0) * Math.max(0, (nd - new Date(ps[i].date + 'T00:00:00')) / 864e5); }
   const avgCap = wsum / pDays; const ann = avgCap > 0 ? netForReturn / avgCap * 365 / pDays * 100 : 0;
@@ -2715,9 +2714,9 @@ function renderDashboard(sorted) {
   const diff = latest && prev ? latest.net - prev.net : null;
   const sv = v => v < 0 ? '(' + r3n(-v) + ')' : '+' + r3n(v);
   $('r3-day').innerHTML = `
-    <div class="metric-card highlight"><div class="lbl">Latest day change (after CGT)</div><div class="val ${r3cls(latest ? latest.net : 0)}">${latest ? (latest.net >= 0 ? '↑ ' : '↓ ') + 'PKR ' + r3n(Math.abs(latest.net)) : '—'}</div><div class="sub">${latest ? fmtDate(lastDay) + (latest.cgt ? ' · after CGT ' + r3n(latest.cgt) : '') : ''}${diff !== null ? ' · vs previous: <b class="' + r3cls(diff) + '">' + sv(diff) + (diff >= 0 ? ' ↑' : ' ↓') + '</b>' : ''}</div></div>
+    <div class="metric-card highlight"><div class="lbl">Latest day change</div><div class="val ${r3cls(latest ? latest.net : 0)}">${latest ? (latest.net >= 0 ? '↑ ' : '↓ ') + 'PKR ' + r3n(Math.abs(latest.net)) : '—'}</div><div class="sub">${latest ? fmtDate(lastDay) + (latest.cgt ? ' · incl. CGT ' + r3n(latest.cgt) : '') : ''}${diff !== null ? ' · vs previous: <b class="' + r3cls(diff) + '">' + sv(diff) + (diff >= 0 ? ' ↑' : ' ↓') + '</b>' : ''}</div></div>
     <div class="metric-card"><div class="lbl">Previous day change</div><div class="val ${r3cls(prev ? prev.net : 0)}">${prev ? (prev.net >= 0 ? '↑ ' : '↓ ') + 'PKR ' + r3n(Math.abs(prev.net)) : '—'}</div><div class="sub">${prev ? fmtDate(prevDay) : ''}</div></div>
-    <div class="metric-card"><div class="lbl">CGT deducted (latest day)</div><div class="val ${latest && latest.cgt ? 'dn' : ''}">PKR ${r3n(latest ? latest.cgt : 0)}</div><div class="sub">${latest ? fmtDate(lastDay) + ' · ' : ''}as entered in your update</div></div>
+    <div class="metric-card"><div class="lbl">CGT deducted (latest day)</div><div class="val ${latest && latest.cgt ? 'dn' : ''}">PKR ${r3n(latest ? latest.cgt : 0)}</div><div class="sub">${latest ? fmtDate(lastDay) + ' · ' : ''}for information · already in the values</div></div>
     <div class="metric-card"><div class="lbl">Net worth after est. CGT</div><div class="val">${hasStmt ? r3pkr(last.total - cgtIf) : r3pkr(last.total)}</div><div class="sub">${hasStmt ? 'Gross ' + r3n(last.total) + ' · CGT if all redeemed ' + r3n(cgtIf) : 'Upload statements for CGT estimate'}</div></div>`;
 
   $('r3-perf').innerHTML = `
