@@ -906,6 +906,7 @@ async function initApp() {
     db.collection('records').orderBy('date','asc').onSnapshot(snap => {
       allRecords = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderAll();
+      if (!window.__r3Repaired) { window.__r3Repaired = true; r3RepairCapitalCorrections().catch(e => console.warn('repair', e)); }
     });
     r3InitData();
   } else {
@@ -3095,12 +3096,23 @@ async function r3SaveAdjust(type, field, delta, notes) {
   const newTotal = v.hblFund + v.ublFund + v.mcbFund + v.binanceFund + v.ublBank + v.cash; const change = newTotal - last.total;
   const run = computeRunning(sortedAsc()); let cumC = (run[last.id] || {}).capital ?? last.cumCapital, cumP = (run[last.id] || {}).profit ?? last.cumProfit;
   let fromProfit = 0, fromCapital = 0;
-  if (type === 'Redemption') { fromProfit = Math.min(Math.abs(change), Math.max(0, cumP)); fromCapital = Math.abs(change) - fromProfit; cumP -= fromProfit; cumC -= fromCapital; }
+  // A negative capital correction is not a withdrawal: it reduces capital only, never profit
+  if (type === 'Redemption') { fromProfit = 0; fromCapital = Math.abs(change); cumC -= fromCapital; }
   if (type === 'New Investment') cumC += change;
   if (type === 'Profit Update') cumP += change;
   const entry = { date: today(), entryType: type, ...v, hblCGT: 0, ublCGT: 0, mcbCGT: 0, totalCGT: 0, total: newTotal, change, netChange: change,
     amountInOut: type === 'Profit Update' ? null : change, fromProfit, fromCapital, cumCapital: Math.round(cumC), cumProfit: Math.round(cumP), profitTracking: true, notes, rowNum: Date.now(), transferDetails: null, reconAdjust: true };
   const ref = await db.collection('records').add(entry); allRecords.push({ ...entry, id: ref.id }); return ref.id;
+}
+// One-time repair: capital corrections saved before 22 Nov 2026 were split profit-first. Move them fully to capital.
+async function r3RepairCapitalCorrections() {
+  if (!db) return;
+  const bad = allRecords.filter(r => r.reconAdjust && r.entryType === 'Redemption' && (r.fromProfit || 0) > 0);
+  for (const r of bad) {
+    const amt = Math.abs(r.change || 0);
+    await db.collection('records').doc(r.id).update({ fromProfit: 0, fromCapital: amt });
+  }
+  if (bad.length) showToast('✅ Corrected ' + bad.length + ' statement capital adjustment' + (bad.length > 1 ? 's' : '') + ' (capital, not profit)', 4500);
 }
 async function r3Accept(amc) {
   const r = r3ReconAll(sortedAsc())[amc]; if (!r || !db) return;
