@@ -2000,6 +2000,7 @@ function exportPDF() {
     {name:'HBL Fund', val:last.hblFund||0},
     {name:'UBL Fund', val:last.ublFund||0},
     {name:'MCB Fund', val:last.mcbFund||0},
+    {name:'Binance', val:last.binanceFund||0},
     {name:'UBL Bank', val:last.ublBank||0},
     {name:'Cash', val:last.cash||0},
   ];
@@ -2084,11 +2085,11 @@ function exportPDF() {
 
     <div class="section-title">Portfolio Summary</div>
     <div class="grid4">
-      <div class="kpi"><div class="lbl">Net worth (after CGT)</div><div class="val">PKR ${Math.round((last.total||0) - totalCGT).toLocaleString('en-PK')}</div><div style="font-size:9px;color:#888;margin-top:2px">Gross: PKR ${Math.round(last.total||0).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Net worth after est. CGT</div><div class="val">PKR ${Math.round((last.total||0) - ((window.__r3Summary||{}).cgtIf||0)).toLocaleString('en-PK')}</div><div style="font-size:9px;color:#888;margin-top:2px">Gross: PKR ${Math.round(last.total||0).toLocaleString('en-PK')} · CGT if all redeemed: PKR ${Math.round((window.__r3Summary||{}).cgtIf||0).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Capital invested</div><div class="val">PKR ${Math.round(((run[last.id]||{}).capital ?? last.cumCapital)||0).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Net profit earned</div><div class="val green">PKR ${Math.round(netProfit).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">Remaining profit</div><div class="val green">PKR ${Math.round(remainingProfit).toLocaleString('en-PK')}</div></div>
-      <div class="kpi"><div class="lbl">Total CGT paid</div><div class="val red">PKR ${Math.round(totalCGT).toLocaleString('en-PK')}</div></div>
+      <div class="kpi"><div class="lbl">Total CGT paid</div><div class="val red">PKR ${Math.round((window.__r3Summary||{}).hasStmt ? window.__r3Summary.cgtPaid : totalCGT).toLocaleString('en-PK')}</div><div style="font-size:9px;color:#888;margin-top:2px">${(window.__r3Summary||{}).hasStmt ? 'Statements since 1 Jul 2025 · in your records PKR ' + Math.round(totalCGT).toLocaleString('en-PK') : 'In your records'}</div></div>
       <div class="kpi"><div class="lbl">Total redeemed</div><div class="val">PKR ${Math.round(totRed).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">From profit (FIFO)</div><div class="val green">PKR ${Math.round(totFromProfit).toLocaleString('en-PK')}</div></div>
       <div class="kpi"><div class="lbl">From capital</div><div class="val red">PKR ${Math.round(totFromCapital).toLocaleString('en-PK')}</div></div>
@@ -2686,6 +2687,7 @@ function renderDashboard(sorted) {
   const held = r3Held(); const hasStmt = R3.funds.length > 0;
   const cgtPaid = R3.funds.reduce((s, f) => s + f.cgtPaid, 0), cgtRef = R3.funds.reduce((s, f) => s + f.cgtRefund, 0);
   const cgtIf = held.reduce((s, f) => s + f.cgtIfRedeemed, 0);
+  window.__r3Summary = { hasStmt, cgtIf, cgtPaid, cgtRef };
   const $ = id => document.getElementById(id);
 
   // alerts
