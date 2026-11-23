@@ -714,12 +714,15 @@ tbody tr:last-child td { border: none; }
 
 <!-- EXPORT MODAL -->
 <div class="modal-bg" id="export-modal">
-  <div class="modal" style="width:380px">
-    <h2>Export data</h2>
-    <p class="subtitle">Download all records</p>
+  <div class="modal" style="width:420px">
+    <h2 id="r3-exp-title">Download</h2>
+    <p class="subtitle" id="r3-exp-sub">This page</p>
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportExcel()">📊 &nbsp; Excel (.xlsx) — matches original format</button>
-      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportPDF()">📄 &nbsp; PDF — summary report</button>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="r3ExportPagePDF()">📄 &nbsp; PDF — this page</button>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="r3ExportPageExcel()">📊 &nbsp; Excel — this page</button>
+      <div style="font-size:11px;color:var(--text3);margin:6px 0 -2px">Everything</div>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportPDF()">📑 &nbsp; Full report PDF — summary + all records</button>
+      <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportExcel()">📗 &nbsp; All records Excel — original format</button>
       <button class="btn-icon" style="justify-content:flex-start;padding:14px 16px;width:100%" onclick="exportFullBackup()">🛡️ &nbsp; Full backup (JSON) — exact copy for restore</button>
     </div>
     <div class="modal-footer">
@@ -1887,7 +1890,7 @@ function calcXIRR(sorted) {
 // ============================================================
 // EXPORT
 // ============================================================
-function showExportModal() { document.getElementById('export-modal').classList.add('open'); }
+function showExportModal() { r3ShowExport(); }
 
 function exportExcel() {
   const sorted = sortedAsc();
@@ -3166,6 +3169,138 @@ async function r3Undo(id) {
   if (!confirm('Undo this reconciliation? The entries it added will be deleted.')) return;
   for (const rid of (l.recordIds || [])) await db.collection('records').doc(rid).delete();
   await db.collection('recon_log').doc(id).update({ undone: true, undoneAt: new Date().toISOString() }); showToast('Undone');
+}
+
+// ---------------- page-aware downloads (23 Nov 2026) ----------------
+const R3_PAGES = { dashboard: 'Dashboard', funds: 'Funds', records: 'Records', analytics: 'Analytics', search: 'Search', statements: 'Statements' };
+function r3CurrentSection() { const s = document.querySelector('.section.active'); return s ? s.id.replace('section-', '') : 'dashboard'; }
+function r3RecordsFilterOn() { return !!((document.getElementById('records-search') || {}).value || (document.getElementById('filter-from') || {}).value || (document.getElementById('filter-to') || {}).value || activeTypeFilter); }
+function r3ShowExport() {
+  const sec = r3CurrentSection();
+  document.getElementById('r3-exp-title').textContent = 'Download · ' + (R3_PAGES[sec] || 'Page');
+  document.getElementById('r3-exp-sub').textContent = {
+    dashboard: 'Summary of your portfolio, plus all records in Excel',
+    funds: 'All funds by AMC, including closed funds',
+    records: r3RecordsFilterOn() ? 'Records matching your current filters' : 'All records',
+    analytics: 'Monthly tables and returns',
+    search: 'Your current search results (all rows)',
+    statements: 'Matching summary, coverage, decisions and every statement transaction'
+  }[sec] || '';
+  document.getElementById('export-modal').classList.add('open');
+}
+function r3CloseExport() { document.getElementById('export-modal').classList.remove('open'); }
+const r3Stamp = () => today();
+function r3SheetName(name, used) { let n = (name || 'Sheet').replace(/[\[\]:*?\/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Sheet'; let k = n, i = 2; while (used.has(k)) k = n.slice(0, 25) + ' ' + (i++); used.add(k); return k; }
+function r3TableTitle(t, i) {
+  const blk = t.closest('.r3-amc-block'); if (blk) { const b = blk.querySelector('b'); if (b) return b.textContent; }
+  const det = t.closest('details'); const card = t.closest('.card');
+  // nearest heading above the table (e.g. "HBL Funds"), then "Closed funds" under it
+  let el = det || t.closest('.table-wrap') || t, h = null;
+  while (el && !h) { let p = el.previousElementSibling; while (p && !h) { if (/^H[2-4]$/.test(p.tagName)) h = p.textContent.trim(); p = p.previousElementSibling; } el = el.parentElement; if (el === card) break; }
+  if (h) return det ? h.replace(/ Funds$/, '') + ' closed funds' : h;
+  const title = card && card.querySelector('.card-title') ? card.querySelector('.card-title').childNodes[0].textContent : '';
+  return (det ? 'Closed funds' : title) || ('Table ' + (i + 1));
+}
+// rows of the Records tab with the same filters as the screen
+function r3RecordsFiltered() {
+  const search = ((document.getElementById('records-search') || {}).value || '').toLowerCase();
+  const from = (document.getElementById('filter-from') || {}).value || '', to = (document.getElementById('filter-to') || {}).value || '';
+  let f = sortedAsc();
+  if (activeTypeFilter) f = f.filter(r => r.entryType === activeTypeFilter);
+  if (from) f = f.filter(r => r.date >= from); if (to) f = f.filter(r => r.date <= to);
+  if (search) f = f.filter(r => JSON.stringify(r).toLowerCase().includes(search));
+  return f;
+}
+function r3SearchFiltered() {
+  const from = (document.getElementById('search-from') || {}).value || '', to = (document.getElementById('search-to') || {}).value || '';
+  const type = (document.getElementById('search-type') || {}).value || '', kw = ((document.getElementById('search-keyword') || {}).value || '').toLowerCase();
+  let f = sortedAsc();
+  if (from) f = f.filter(r => r.date >= from); if (to) f = f.filter(r => r.date <= to);
+  if (type) f = f.filter(r => r.entryType === type); if (kw) f = f.filter(r => JSON.stringify(r).toLowerCase().includes(kw));
+  return f;
+}
+function r3RecordRowsAoa(list) {
+  const run = computeRunning(sortedAsc());
+  const aoa = [['Date', 'Type', 'HBL Fund', 'UBL Fund', 'MCB Fund', 'Binance', 'UBL Bank', 'Cash', 'Total', 'Day change', 'HBL CGT', 'UBL CGT', 'MCB CGT', 'Total CGT', 'Cum. Capital', 'Cum. Profit', 'From Profit', 'From Capital', 'Notes']];
+  list.forEach(r => aoa.push([r.date, r.entryType, r.hblFund || 0, r.ublFund || 0, r.mcbFund || 0, r.binanceFund || 0, r.ublBank || 0, r.cash || 0, r.total || 0, r.change || 0, r.hblCGT || 0, r.ublCGT || 0, r.mcbCGT || 0, r.totalCGT || 0,
+    (run[r.id] || {}).capital ?? r.cumCapital, (run[r.id] || {}).profit ?? r.cumProfit, r.fromProfit || 0, r.fromCapital || 0, r.transferDetails || r.notes || '']));
+  return aoa;
+}
+function r3CardsAoa(sec) {
+  const aoa = [['Item', 'Value', 'Note']];
+  sec.querySelectorAll('.r3-hero-val').forEach(v => aoa.push(['Net worth', v.textContent.trim(), (sec.querySelector('.r3-hero-sub') || {}).textContent || '']));
+  sec.querySelectorAll('.r3-tile, .metric-card').forEach(c => {
+    const l = c.querySelector('.r3-tl, .lbl'), v = c.querySelector('.r3-tv, .val'); if (!l || !v) return;
+    const n = [...c.querySelectorAll('.r3-ts, .sub')].map(x => x.textContent.trim()).join(' · ');
+    aoa.push([l.textContent.trim(), v.textContent.trim(), n]);
+  });
+  return aoa.length > 1 ? aoa : null;
+}
+function r3ExportPageExcel() {
+  if (typeof XLSX === 'undefined') { showToast('Excel library did not load. Check your internet and refresh.'); return; }
+  const secName = r3CurrentSection(), sec = document.getElementById('section-' + secName); const wb = XLSX.utils.book_new(); const used = new Set();
+  const add = (name, aoa, widths) => { const ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols'] = (widths || aoa[0].map(() => 14)).map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, r3SheetName(name, used)); };
+  if (secName === 'records') add('Records', r3RecordRowsAoa(r3RecordsFiltered()));
+  else if (secName === 'search') add('Search results', r3RecordRowsAoa(r3SearchFiltered()));
+  else {
+    const cards = r3CardsAoa(sec); if (cards) add('Summary', cards, [32, 22, 60]);
+    if (secName === 'statements') {
+      const rec = r3ReconAll(sortedAsc());
+      const aoa = [['AMC', 'Statement value', 'Statement date', 'Your records', 'Pending, not yet on statement', 'Difference', 'Status']];
+      Object.entries(rec).forEach(([amc, r]) => aoa.push([amc, Math.round(r.stmtValue || 0), r.navDate || '', Math.round(r.appValue || 0), Math.round((r.pending || []).reduce((s, x) => s + (x.amt || 0), 0)), Math.round(r.delta || 0), Math.abs(r.delta || 0) < 1 ? 'Matched' : 'Difference to review']));
+      add('Matching summary', aoa, [8, 16, 14, 16, 26, 14, 20]);
+      const cov = r3Coverage(); const ca = [['AMC', 'Covered from', 'Covered to', 'Gaps']];
+      Object.entries(cov).forEach(([amc, c]) => ca.push([amc, c.start, c.end, (c.gaps || []).map(g => g[0] + ' to ' + g[1]).join('; ') || 'None']));
+      add('Coverage', ca, [8, 14, 14, 40]);
+      const da = [['Date', 'AMC', 'Decision', 'Capital', 'Profit', 'Statement value', 'Undone']];
+      (R3.recon || []).forEach(l => da.push([(l.at || '').slice(0, 10), l.amc, l.action === 'accept' ? 'Accepted statement figure' : 'Kept my figure', l.capital ?? '', l.profit ?? (l.delta ?? ''), l.stmtValue ?? '', l.undone ? 'Yes' : '']));
+      add('Decisions', da, [12, 8, 26, 12, 12, 16, 8]);
+      const ea = [['Date', 'AMC', 'Fund', 'Type', 'Detail', 'Units', 'NAV', 'Amount']];
+      [...R3.events].sort((a, b) => a.date.localeCompare(b.date) || a.amc.localeCompare(b.amc)).forEach(e => ea.push([e.date, e.amc, e.fundName || e.fundKey, { buy: 'Units in', sell: 'Units out', cgt: 'CGT', free: 'Free units' }[e.kind] || e.kind, e.sub || '', e.units || 0, e.nav || '', Math.round((e.amount || 0) * 100) / 100]));
+      add('Statement transactions', ea, [12, 6, 40, 12, 14, 14, 12, 14]);
+    } else {
+      [...sec.querySelectorAll('table')].forEach((t, i) => { if (!t.rows.length) return;
+        // cells holding two lines (e.g. NAV and its date) become "107.9919 · 21 Nov" instead of running together
+        const tc = t.cloneNode(true); tc.querySelectorAll('td,th').forEach(c => { const parts = [...c.childNodes].map(n => n.textContent.trim()).filter(Boolean); if (parts.length > 1) c.textContent = parts.join(' · '); });
+        const ws = XLSX.utils.table_to_sheet(tc, { raw: false }); XLSX.utils.book_append_sheet(wb, ws, r3SheetName(r3TableTitle(t, i), used)); });
+      if (secName === 'dashboard') add('All records', r3RecordRowsAoa(sortedAsc()));
+    }
+  }
+  if (!wb.SheetNames.length) { showToast('Nothing to download on this page yet'); return; }
+  XLSX.writeFile(wb, `Portfolio_${R3_PAGES[secName] || 'Page'}_${r3Stamp()}.xlsx`);
+  showToast('📊 ' + (R3_PAGES[secName] || 'Page') + ' downloaded'); r3CloseExport();
+}
+// PDF: an exact printable copy of the page you are on (charts included)
+function r3PrintWindow(title, bodyHTML) {
+  const styles = [...document.querySelectorAll('style')].map(s => s.outerHTML).join('\n');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Portfolio Tracker – ${title}</title>${styles}
+  <style>body{background:#fff;padding:18px 22px} .section{display:block!important} .bottom-nav,.r3-btn,button,input[type=file],select{display:none!important}
+  .table-wrap{overflow:visible!important;max-height:none!important} table{min-width:0!important;width:100%} thead{position:static!important}
+  .metric-card,.r3-tile,tr,img.r3-chartimg{break-inside:avoid} .card{break-inside:auto} img.r3-chartimg{max-width:100%;height:auto}
+  .r3-print-head h1{font-size:20px;margin-bottom:2px} .r3-print-head p{font-size:11px;color:#666;margin-bottom:14px}
+  .r3-print-btn{position:fixed;top:14px;right:14px;background:#2563eb;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:block!important}
+  @media print{@page{size:A4 landscape;margin:1cm} body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact} .r3-print-btn{display:none!important}}</style></head>
+  <body><button class="r3-print-btn" onclick="window.print()">⬇ Save as PDF</button>
+  <div class="r3-print-head"><h1>Portfolio Tracker · ${title}</h1><p>Generated ${new Date().toLocaleString('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p></div>${bodyHTML}</body></html>`;
+  const win = window.open('', '_blank', 'width=1200,height=800'); if (!win) { showToast('Allow pop-ups for this site to download the PDF'); return; }
+  win.document.write(html); win.document.close();
+  showToast('📄 Ready — click "Save as PDF" or press Ctrl+P'); r3CloseExport();
+}
+function r3RecordsTableHTML(list, title) {
+  const a = r3RecordRowsAoa(list); const num = v => typeof v === 'number' ? (v < 0 ? '(' + Math.round(-v).toLocaleString('en-PK') + ')' : Math.round(v).toLocaleString('en-PK')) : r3esc(String(v ?? ''));
+  return `<div class="card"><div class="card-title">${title} · ${list.length} entries</div><table class="r3-table" style="font-size:9px"><thead><tr>${a[0].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${a.slice(1).map(r => `<tr>${r.map((v, i) => `<td class="${i < 2 || i === 18 ? 'l' : ''}">${i === 0 ? fmtDate(v) : num(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function r3ExportPagePDF() {
+  const secName = r3CurrentSection(), title = R3_PAGES[secName] || 'Page';
+  if (secName === 'records') return r3PrintWindow('Records', r3RecordsTableHTML(r3RecordsFiltered(), r3RecordsFilterOn() ? 'Records (filtered)' : 'All records'));
+  if (secName === 'search') return r3PrintWindow('Search results', r3RecordsTableHTML(r3SearchFiltered(), 'Search results'));
+  const sec = document.getElementById('section-' + secName); const clone = sec.cloneNode(true);
+  const src = sec.querySelectorAll('canvas'), dst = clone.querySelectorAll('canvas');
+  src.forEach((c, i) => { try { if (!c.width || !c.offsetParent) { dst[i].remove(); return; } const img = document.createElement('img'); img.className = 'r3-chartimg'; img.src = c.toDataURL('image/png'); img.style.width = c.clientWidth + 'px'; dst[i].replaceWith(img); } catch (e) { dst[i].remove(); } });
+  clone.querySelectorAll('details').forEach(d => d.setAttribute('open', ''));
+  clone.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  if (secName === 'statements') { const up = clone.querySelector('.card'); if (up && /Upload statements/.test(up.textContent)) up.remove(); }
+  r3PrintWindow(title, `<div class="section active">${clone.innerHTML}</div>`);
 }
 
 if (typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
