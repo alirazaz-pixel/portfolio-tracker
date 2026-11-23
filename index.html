@@ -2643,9 +2643,12 @@ function r3InitData() {
 }
 function r3Merged() {
   const closings = {}, openings = {};
-  [...R3.imports].sort((a, b) => ((a.period || {}).from || '9').localeCompare((b.period || {}).from || '9')).forEach(im => {
-    Object.entries(im.openings || {}).forEach(([k, o]) => { if (!openings[k]) openings[k] = o; });
-  });
+  // Opening balances come ONLY from each AMC's earliest statement. Every later statement's opening is already
+  // explained by the transactions saved before it; using it again would count those units twice.
+  // (A fund missing from the earliest statement's openings simply started at 0.)
+  const earliest = {};
+  R3.imports.forEach(im => { const f = (im.period || {}).from || '9'; if (!earliest[im.amc] || f < ((earliest[im.amc].period || {}).from || '9')) earliest[im.amc] = im; });
+  Object.values(earliest).forEach(im => Object.entries(im.openings || {}).forEach(([k, o]) => { openings[k] = o; }));
   R3.imports.forEach(im => Object.entries(im.closings || {}).forEach(([k, c]) => {
     const d = c.navDate || (im.period || {}).to || '';
     if (!closings[k] || d > (closings[k].navDate || '')) closings[k] = { ...c, navDate: d };
@@ -3150,6 +3153,9 @@ async function r3RepairCapitalCorrections() {
 async function r3Accept(amc) {
   const r = r3ReconAll(sortedAsc())[amc]; if (!r || !db) return;
   const cap = Math.round(+document.getElementById('r3-cap-' + amc).value || 0); const prof = r.delta - cap;
+  // Safety check: a money market/income portfolio rarely earns more than about 0.5% of its value between two updates
+  const big = Math.abs(prof) > Math.max(5000, Math.abs(r.target || 0) * 0.005);
+  if (big && !confirm(`⚠ Unusually large profit difference for ${amc}: ${r3s(prof)}.\n\nThat is ${(Math.abs(prof) / Math.max(1, r.target) * 100).toFixed(2)}% of the ${amc} value. Normal daily profit is far smaller.\n\nCheck the statement figures first. If something looks wrong, press Cancel and send a screenshot.\n\nAccept anyway?`)) return;
   if (!confirm(`${amc}: add today-dated entries — capital ${r3s(cap)} and profit ${r3s(prof)} — so your records match the statement (${r3n(r.target)})?`)) return;
   try {
     const ids = []; const f = R3_FIELD[amc];
