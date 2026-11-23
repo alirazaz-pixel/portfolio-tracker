@@ -2632,7 +2632,8 @@ const r3TitleCase = s => /[a-z]/.test(s) ? s : s.toLowerCase().replace(/\b\w/g, 
 // ---------------- data loading ----------------
 function r3InitData() {
   if (!db) return;
-  db.collection('stmt_events').onSnapshot(s => { R3.events = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute(); });
+  db.collection('stmt_events').onSnapshot(s => { R3.events = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute();
+    if (!R3.__dupChecked && R3.events.length) { R3.__dupChecked = true; r3RepairDuplicateEvents().catch(e => console.warn('dup repair', e)); } });
   db.collection('stmt_imports').onSnapshot(s => { R3.imports = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute(); });
   db.collection('fund_meta').onSnapshot(s => { R3.meta = {}; s.docs.forEach(d => { R3.meta[d.id] = d.data(); }); r3Recompute(); });
   db.collection('recon_log').onSnapshot(s => { R3.recon = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.at || '').localeCompare(a.at || '')); r3RenderStatements(); });
@@ -2946,18 +2947,44 @@ async function r3SetType(key, name, type) {
 }
 
 // ---------------- statements: upload & review ----------------
+// Signature for spotting the same transaction across statement formats. Only one label difference is known:
+// UBL's full statement calls a CGT refund "investment" while the per-fund statement calls it "CGT refund".
+// Every other label must match (e.g. an investment and a conversion of equal units on one day are two transactions).
+const r3SubClass = s => (s === 'cgtRefund' ? 'investment' : (s || ''));
+function r3EventSig(e) { return [e.amc, (e.fundKey || '').split(':')[1], e.date, e.kind, r3SubClass(e.sub), (e.units || 0).toFixed(1), Math.round(e.amount || 0)].join('|'); }
+// How many times each transaction is already saved (same transaction saved under two labels counts once)
+function r3SavedCounts(events) {
+  const g = {}; events.forEach(e => { const k = r3EventSig(e); (g[k] = g[k] || {})[e.sub || ''] = ((g[k] || {})[e.sub || ''] || 0) + 1; });
+  const out = {}; Object.entries(g).forEach(([k, bySub]) => { out[k] = Math.max(...Object.values(bySub)); }); return out;
+}
+// Repair: remove copies of a transaction that were saved twice under different labels (keeps the most specific label)
+async function r3RepairDuplicateEvents() {
+  if (!db || !R3.events.length) return 0;
+  const g = {}; R3.events.forEach(e => { const k = r3EventSig(e); (g[k] = g[k] || []).push(e); });
+  const del = [];
+  Object.values(g).forEach(list => {
+    const inv = list.filter(e => e.sub === 'investment'), ref = list.filter(e => e.sub === 'cgtRefund');
+    if (!inv.length || !ref.length) return;
+    // the same CGT refund saved twice: keep the "CGT refund" copies, drop the matching "investment" copies
+    inv.slice(0, ref.length).forEach(e => del.push(e.id));
+  });
+  for (const id of del) await db.collection('stmt_events').doc(id).delete();
+  if (del.length) showToast('✅ Removed ' + del.length + ' duplicate statement transaction' + (del.length > 1 ? 's' : ''), 4500);
+  return del.length;
+}
 function r3EventKey(e, occ) { return r3DocId([e.amc, e.fundKey.split(':')[1], e.date, e.kind, e.sub, (e.units || 0).toFixed(1), Math.round(e.amount || 0)].join('|')) + '_' + occ; }
 async function r3HandleFiles(files) {
   const box = document.getElementById('r3-review'); if (!files || !files.length) return;
   if (typeof pdfjsLib === 'undefined') { box.innerHTML = '<p class="dn">The PDF reader did not load. Check your internet connection and refresh.</p>'; return; }
   box.innerHTML = '<p class="r3-note">Reading statements…</p>'; R3.pendingReview = [];
-  const existing = new Set(R3.events.map(e => e.id));
+  const existing = new Set(R3.events.map(e => e.id)); const saved = r3SavedCounts(R3.events);
   for (const file of files) {
     try {
       const lines = await pdfToLines(pdfjsLib, new Uint8Array(await file.arrayBuffer()));
       const r = STMT.parse(lines);
       if (r.error) { R3.pendingReview.push({ file: file.name, error: r.error }); continue; }
-      const occ = {}; r.events.forEach(e => { const base = r3EventKey(e, 0).replace(/_0$/, ''); occ[base] = (occ[base] || 0) + 1; e.id = base + '_' + occ[base]; e.isNew = !existing.has(e.id); });
+      const occ = {}, socc = {}; r.events.forEach(e => { const base = r3EventKey(e, 0).replace(/_0$/, ''); occ[base] = (occ[base] || 0) + 1; e.id = base + '_' + occ[base];
+        const sg = r3EventSig(e); socc[sg] = (socc[sg] || 0) + 1; e.isNew = !existing.has(e.id) && socc[sg] > (saved[sg] || 0); });
       R3.pendingReview.push({ file: file.name, r });
     } catch (err) { R3.pendingReview.push({ file: file.name, error: 'Could not read this PDF: ' + err.message }); }
   }
@@ -3044,7 +3071,9 @@ function r3ReconAll(sorted) {
     const pending = appUn.filter(x => x.date >= lastTx && x.date >= (navDate || lastTx)); const appOther = appUn.filter(x => !pending.includes(x));
     const target = stmtValue + pending.reduce((s, x) => s + x.amt, 0);
     const appValue = last[R3_FIELD[amc]] || 0; const delta = Math.round(target - appValue);
-    const sugCap = Math.round(stUn.reduce((s, x) => s + x.amt, 0) - appOther.reduce((s, x) => s + x.amt, 0));
+    // capital corrections already accepted for this AMC are part of the answer, so they are not suggested again
+    const adjCap = sorted.filter(r => r.reconAdjust && (r.entryType === 'New Investment' || r.entryType === 'Redemption') && (r.notes || '').startsWith(amc + ' ')).reduce((s, r) => s + (r.amountInOut || 0), 0);
+    const sugCap = Math.round(stUn.reduce((s, x) => s + x.amt, 0) - appOther.reduce((s, x) => s + x.amt, 0) - adjCap);
     const decided = R3.recon.find(l => l.amc === amc && l.stmtValue === Math.round(stmtValue) && !l.undone);
     const defCap = (Math.sign(sugCap) === Math.sign(delta) && Math.abs(sugCap) <= Math.abs(delta)) ? sugCap : 0;
     out[amc] = { stmtValue, navDate, appValue, target, delta, pending, appOther, stUn, dateDiff, matched: st.length - stUn.length, sugCap, defCap, decided };
