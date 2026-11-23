@@ -391,6 +391,9 @@ tbody tr:last-child td { border: none; }
 .r3-readerr { margin-top: 10px; padding: 12px 14px; border: 1px solid #dc2626; background: #fef2f2; color: #991b1b; border-radius: 10px; font-size: 13px; }
 [data-theme="dark"] .r3-readerr { background: #2d1212; color: #fca5a5; }
 .r3-readerr ul { margin: 6px 0 6px 18px; }
+.r3-kv5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.r3-kv6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 900px) { .r3-kv5, .r3-kv6 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -490,6 +493,8 @@ tbody tr:last-child td { border: none; }
 
     <!-- FUNDS -->
     <div id="section-funds" class="section">
+      <div class="card r3-gap" id="r3-stock-card"><div class="r3-head"><div class="card-title" style="margin:0">Stock funds — capital invested and profit / loss</div><div class="r3-note">Purchases still held (FIFO) · valued at the latest NAV</div></div>
+        <div id="r3-stock"></div></div>
       <div class="card r3-gap"><div class="r3-head"><div class="card-title" style="margin:0">Funds</div><div class="r3-note" id="r3-funds-asof"></div></div>
         <div id="r3-funds"></div></div>
       <div class="card r3-gap" id="r3-fund-detail" style="display:none"></div>
@@ -2918,7 +2923,52 @@ function r3OnCommitted(entry) {
 }
 
 // ---------------- funds tab ----------------
+// ---------------- stock funds: capital invested, break-even NAV, P/L per purchase (like Ali's Excel) ----------------
+function r3RenderStock() {
+  const el = document.getElementById('r3-stock'); if (!el) return;
+  const card = document.getElementById('r3-stock-card');
+  const stock = R3.funds.filter(f => f.type === 'Stock');
+  if (!stock.length) { card.style.display = 'none'; return; } card.style.display = '';
+  const held = stock.filter(f => f.units > 0.0001).sort((a, b) => b.value - a.value), closed = stock.filter(f => f.units <= 0.0001 && (f.sells || []).length);
+  const sum = (arr, k) => arr.reduce((s, f) => s + (f[k] || 0), 0);
+  const cap = sum(held, 'costHeld'), val = sum(held, 'value'), unr = val - cap;
+  const realised = stock.reduce((s, f) => s + (f.sells || []).reduce((t, x) => t + (x.gain || 0), 0), 0);
+  const cgt = sum(stock, 'cgtPaid');
+  const pct = (a, b) => b ? (a / b * 100).toFixed(2) + '%' : '—';
+  const navf = v => v == null ? '—' : (+v).toLocaleString('en-PK', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  const unitsf = v => (+v).toLocaleString('en-PK', { maximumFractionDigits: 4 });
+  const src = s => ({ investment: 'Investment', conversion: 'Conversion in', dividend: 'Dividend re-invest', cgtRefund: 'CGT refund' }[s] || (s ? r3TitleCase(s) : 'Opening balance'));
+  let h = `<div class="r3-kv r3-kv5">
+    <div>Capital invested (held now)<b>${r3n(cap)}</b><span class="r3-note">${held.length} fund${held.length === 1 ? '' : 's'}</span></div>
+    <div>Current value<b>${r3n(val)}</b></div>
+    <div>Profit / loss now<b class="${r3cls(unr)}">${r3s(unr)}</b><span class="${r3cls(unr)}">${pct(unr, cap)}</span></div>
+    <div>Realised on sales since 1 Jul 2025<b class="${r3cls(realised)}">${r3s(Math.round(realised))}</b><span class="r3-note">before CGT</span></div>
+    <div>CGT paid on stock funds<b class="dn">${r3n(cgt)}</b></div></div>`;
+  held.forEach(f => {
+    const be = f.units ? f.costHeld / f.units : 0; const pl = f.value - f.costHeld; const need = f.nav ? (be / f.nav - 1) * 100 : 0;
+    const lots = (f.lots || []).filter(l => l.units > 0.0001);
+    h += `<div class="r3-amc-block" style="margin-top:12px"><div class="r3-head" style="margin:0"><b>${r3esc(r3TitleCase(f.name))} <span class="r3-note">· ${f.amc}</span></b>
+        <span class="${r3cls(pl)}" style="font-weight:700">${r3s(Math.round(pl))} (${pct(pl, f.costHeld)})</span></div>
+      <div class="r3-kv r3-kv6">
+        <div>Capital invested<b>${r3n(f.costHeld)}</b></div><div>Units<b>${unitsf(f.units)}</b></div>
+        <div>Average NAV (break-even)<b>${navf(be)}</b></div><div>Current NAV<b>${navf(f.nav)}</b><span class="r3-note">${f.navDate ? fmtDate(f.navDate) : ''}</span></div>
+        <div>Current value<b>${r3n(f.value)}</b></div>
+        <div>${pl < 0 ? 'NAV rise needed to break even' : 'Above break-even by'}<b class="${pl < 0 ? 'dn' : 'up'}">${Math.abs(need).toFixed(2)}%</b></div></div>
+      <div class="table-wrap"><table class="r3-table" style="min-width:720px"><thead><tr><th class="l">Purchase date</th><th class="l">How</th><th>Amount invested</th><th>NAV</th><th>Units</th><th>Value now</th><th>Profit / loss</th><th>%</th></tr></thead><tbody>
+      ${lots.map(l => { const lv = l.units * (f.nav || 0), lp = lv - l.cost;
+        return `<tr><td class="l">${fmtDate(l.date)}</td><td class="l">${src(l.opening ? '' : l.sub)}</td><td>${r3n(l.cost)}</td><td>${navf(l.cost / l.units)}</td><td>${unitsf(l.units)}</td><td>${r3n(lv)}</td><td class="${r3cls(lp)}">${r3s(Math.round(lp))}</td><td class="${r3cls(lp)}">${pct(lp, l.cost)}</td></tr>`; }).join('')}
+      <tr style="font-weight:700;background:var(--surface2)"><td class="l">Total</td><td></td><td>${r3n(f.costHeld)}</td><td>${navf(be)}</td><td>${unitsf(f.units)}</td><td>${r3n(f.value)}</td><td class="${r3cls(pl)}">${r3s(Math.round(pl))}</td><td class="${r3cls(pl)}">${pct(pl, f.costHeld)}</td></tr></tbody></table></div>
+      ${(f.sells || []).length ? `<details style="margin-top:6px"><summary class="r3-note" style="cursor:pointer">Sold or converted out (${f.sells.length}) — gain or loss on each</summary><div class="table-wrap"><table class="r3-table" style="min-width:720px"><thead><tr><th class="l">Date</th><th class="l">How</th><th>Units</th><th>NAV</th><th>Proceeds</th><th>Cost (FIFO)</th><th>Gain / loss</th><th>CGT</th></tr></thead><tbody>
+        ${f.sells.map(x => `<tr><td class="l">${fmtDate(x.date)}</td><td class="l">${x.sub === 'conversion' ? 'Conversion out' : 'Redemption'}</td><td>${unitsf(x.units)}</td><td>${navf(x.nav)}</td><td>${r3n(x.gross)}</td><td>${r3n(x.cost)}</td><td class="${r3cls(x.gain)}">${r3s(Math.round(x.gain))} ${x.gain >= 0 ? '▲' : '▼'}</td><td class="dn">${x.cgt != null ? r3n(x.cgt) : (x.cgtEst ? '~' + r3n(x.cgtEst) : '0')}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+    </div>`;
+  });
+  if (closed.length) h += `<details style="margin-top:12px"><summary class="r3-note" style="cursor:pointer">Closed stock funds (${closed.length}) — realised gain or loss</summary><div class="table-wrap"><table class="r3-table" style="min-width:620px"><thead><tr><th class="l">Fund</th><th class="l">AMC</th><th>Sales</th><th>Realised gain / loss</th><th>CGT paid</th></tr></thead><tbody>
+    ${closed.map(f => { const g = (f.sells || []).reduce((t, x) => t + (x.gain || 0), 0); return `<tr><td class="l">${r3esc(r3TitleCase(f.name))}</td><td class="l">${f.amc}</td><td>${f.sells.length}</td><td class="${r3cls(g)}">${r3s(Math.round(g))}</td><td class="dn">${r3n(f.cgtPaid)}</td></tr>`; }).join('')}</tbody></table></div></details>`;
+  h += `<p class="r3-note" style="margin-top:8px">Capital invested = what you paid for the units you still hold (oldest units are sold first, as the AMC does for CGT). Average NAV is your break-even: above it you are in profit. Conversions in count at the amount that arrived in the fund.</p>`;
+  el.innerHTML = h;
+}
 function r3RenderFunds() {
+  r3RenderStock();
   const el = document.getElementById('r3-funds'); if (!el) return;
   if (!R3.funds.length) { el.innerHTML = '<p class="r3-note">Upload statements in the Statements tab to see your funds.</p>'; return; }
   const { closings } = r3Merged(); const asof = Object.values(closings).map(c => c.navDate).filter(Boolean).sort().pop();
@@ -3215,7 +3265,8 @@ function r3CloseExport() { document.getElementById('export-modal').classList.rem
 const r3Stamp = () => today();
 function r3SheetName(name, used) { let n = (name || 'Sheet').replace(/[\[\]:*?\/\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Sheet'; let k = n, i = 2; while (used.has(k)) k = n.slice(0, 25) + ' ' + (i++); used.add(k); return k; }
 function r3TableTitle(t, i) {
-  const blk = t.closest('.r3-amc-block'); if (blk) { const b = blk.querySelector('b'); if (b) return b.textContent; }
+  const blk = t.closest('.r3-amc-block'); if (blk) { const b = blk.querySelector('b'); if (b) { const n = b.textContent.replace(/\s*·.*$/, '').replace(/ Fund(s)?\b/, '').trim(); return t.closest('details') ? n + ' sales' : n; } }
+  if (t.closest('#r3-stock')) return 'Closed stock funds';
   const det = t.closest('details'); const card = t.closest('.card');
   // nearest heading above the table (e.g. "HBL Funds"), then "Closed funds" under it
   let el = det || t.closest('.table-wrap') || t, h = null;
