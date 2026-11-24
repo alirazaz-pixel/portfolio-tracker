@@ -2975,7 +2975,10 @@ function r3RenderPlanner(cumProfit) {
     <div class="r3-head" style="margin-top:12px;margin-bottom:0"><div class="r3-note" style="max-width:640px">${R3.method === 'smart' ? 'Smart takes profit first from funds where the units sold carry the least taxable gain, so CGT now is lowest.' : 'Proportional takes from each fund in proportion to the profit it holds.'} If the funds' gains are less than the amount (because conversions already settled the CGT on earlier profit), the rest comes from money market and income funds; CGT shown is the AMC's FIFO estimate on the units sold. Funds in loss are skipped. Your capital stays untouched.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="r3-note" for="r3-reinvest">Reinvest into</label>
         <select id="r3-reinvest" onchange="R3.reinvest=this.value" style="padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
-          ${[['', 'Nothing (take cash)'], ['binanceFund', 'Binance'], ['ublBank', 'UBL Bank'], ['cash', 'Cash']].map(([v, l]) => `<option value="${v}" ${R3.reinvest === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          ${(() => { const from = new Set(rows.filter(r => r.amount > 0).map(r => r.amc)); const opts = [['', 'Nothing (take cash)'], ['binanceFund', 'Binance'], ['ublBank', 'UBL Bank'], ['cash', 'Cash']];
+            [['hblFund', 'HBL Funds', 'HBL'], ['ublFund', 'UBL Funds', 'UBL'], ['mcbFund', 'MCB Funds', 'MCB']].forEach(([v, l, a]) => { if (!from.has(a)) opts.push([v, l + ' (new investment)']); });
+            if (R3.reinvest && !opts.some(o => o[0] === R3.reinvest)) R3.reinvest = '';
+            return opts; })().map(([v, l]) => `<option value="${v}" ${R3.reinvest === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button type="button" class="r3-btn primary" ${p.total > 0 ? '' : 'disabled'} onclick='r3RecordPlan(${JSON.stringify(rows.filter(r => r.amount > 0).map(r => ({ amc: r.amc, name: r3TitleCase(r.name), amount: r.amount, net: r.net })))})'>Record these redemptions</button></div></div>`;
 }
 // live typing in the amount box: the plan updates as you type (no Enter needed), keeping your cursor in the box
@@ -3004,7 +3007,7 @@ function r3OnCommitted(entry) {
   if (r3AfterSave && entry.entryType === 'Redemption') {
     const a = r3AfterSave; r3AfterSave = null;
     setTimeout(() => { const last = getLastRecord(); openEntryModal(); selectTxType('New Investment');
-      const id = { binanceFund: 'f-binance', ublBank: 'f-ublbank', cash: 'f-cash' }[a.field]; const el = document.getElementById(id);
+      const id = { binanceFund: 'f-binance', ublBank: 'f-ublbank', cash: 'f-cash', hblFund: 'f-hbl', ublFund: 'f-ubl', mcbFund: 'f-mcb' }[a.field]; const el = document.getElementById(id);
       if (el && last) el.value = Math.round((last[a.field] || 0) + a.amount);
       const n = document.getElementById('f-notes'); if (n) n.value = 'Reinvested profit from planner';
       updateCalcPreview(); showToast('Now confirm the reinvestment of ' + r3n(a.amount), 4000); }, 900);
