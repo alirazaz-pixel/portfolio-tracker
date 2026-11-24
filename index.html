@@ -2714,7 +2714,8 @@ function r3InitData() {
   db.collection('stmt_events').onSnapshot(s => { R3.events = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute();
     if (!R3.__dupChecked && R3.events.length) { R3.__dupChecked = true; r3RepairDuplicateEvents().catch(e => console.warn('dup repair', e)); } });
   db.collection('stmt_imports').onSnapshot(s => { R3.imports = s.docs.map(d => ({ id: d.id, ...d.data() })); r3Recompute(); });
-  db.collection('fund_meta').onSnapshot(s => { R3.meta = {}; s.docs.forEach(d => { R3.meta[d.id] = d.data(); }); r3Recompute(); });
+  db.collection('fund_meta').onSnapshot(s => { R3.meta = {}; s.docs.forEach(d => { R3.meta[d.id] = d.data(); }); r3Recompute();
+    if (!R3.__typeFixed) { R3.__typeFixed = true; r3RepairStockTypes().catch(e => console.warn('type repair', e)); } });
   db.collection('recon_log').onSnapshot(s => { R3.recon = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.at || '').localeCompare(a.at || '')); r3RenderStatements(); });
 }
 function r3Merged() {
@@ -3014,6 +3015,7 @@ function r3RenderStock() {
   if (!stock.length) { card.style.display = 'none'; return; } card.style.display = '';
   const held = stock.filter(f => f.units > 0.0001).sort((a, b) => b.value - a.value), closed = stock.filter(f => f.units <= 0.0001 && (f.sells || []).length);
   const sum = (arr, k) => arr.reduce((s, f) => s + (f[k] || 0), 0);
+  const SH = r3Shares();
   const cost = sum(held, 'costHeld'), cap = sum(held, 'capitalHeld'), car = sum(held, 'carriedHeld'), val = sum(held, 'value'), unr = val - cost, tot = unr + car;
   const cgt = sum(stock, 'cgtPaid'), lifePL = sum(stock, 'lifePL'), bought = sum(stock, 'putIn'), sold = sum(stock, 'totalOut'), avgInv = sum(stock, 'avgInvested');
   const pct = (a, b) => b ? (a / b * 100).toFixed(2) + '%' : '—';
@@ -3023,7 +3025,7 @@ function r3RenderStock() {
   let h = `<div class="r3-note" style="margin:2px 0 -4px;font-weight:600">Now — ${held.length} stock fund${held.length === 1 ? '' : 's'} held</div><div class="r3-kv r3-kv5">
     <div>Total cost of units held<b>${r3n(cost)}</b></div>
     <div>Your capital in stocks<b>${r3n(cap)}</b><span class="r3-note">cost minus profit carried in</span></div>
-    <div>Current value<b>${r3n(val)}</b></div>
+    <div>Current value<b>${r3n(val)}</b><span class="r3-note" style="font-weight:600">${r3sh(val, SH.total)} of your portfolio</span></div>
     <div>Gain / loss since bought<b class="${r3cls(unr)}">${r3s(unr)}</b><span class="${r3cls(unr)}">${pct(unr, cost)}</span></div>
     <div>Total profit / loss in stocks<b class="${r3cls(tot)}">${r3s(tot)}</b><span class="${r3cls(tot)}">${pct(tot, cap)} of your capital · incl. ${r3s(car)} carried in</span></div></div>
     <div class="r3-note" style="margin:8px 0 -4px;font-weight:600">Lifetime since 1 Jul 2025 — all stock funds, including closed</div><div class="r3-kv r3-kv5">
@@ -3037,7 +3039,7 @@ function r3RenderStock() {
     const be = f.units ? f.costHeld / f.units : 0; const pl = f.value - f.costHeld; const need = f.nav ? (be / f.nav - 1) * 100 : 0;
     const lots = (f.lots || []).filter(l => l.units > 0.0001);
     h += `<div class="r3-amc-block" style="margin-top:12px"><div class="r3-head" style="margin:0"><b>${r3esc(r3TitleCase(f.name))} <span class="r3-note">· ${f.amc}</span></b>
-        <span class="${r3cls(pl)}" style="font-weight:700">${r3s(Math.round(pl))} (${pct(pl, f.costHeld)})</span></div>
+        <span class="r3-note" style="font-size:13px"><b style="color:var(--text)">${r3sh(f.value, SH.total)} of your portfolio</b> · ${r3sh(f.value, SH.amc[f.amc])} of ${f.amc} · total profit / loss <b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b></span></div>
       <div class="r3-kv r3-kv6">
         <div>Total cost<b>${r3n(f.costHeld)}</b><span class="r3-note">your capital ${r3n(f.capitalHeld)}${Math.abs(f.carriedHeld) >= 1 ? ' + carried ' + r3n(f.carriedHeld) : ''}</span></div><div>Units<b>${unitsf(f.units)}</b></div>
         <div>Average NAV (break-even)<b>${navf(be)}</b></div><div>Current NAV<b>${navf(f.nav)}</b><span class="r3-note">${f.navDate ? fmtDate(f.navDate) : ''}</span></div>
@@ -3107,8 +3109,21 @@ function r3OpenFund(key, keepScroll) {
     <h3 style="font-size:14px;margin:14px 0 6px">All transactions since 1 Jul 2025</h3><div class="table-wrap" style="max-height:420px;overflow:auto"><table class="r3-table" style="min-width:760px"><thead><tr><th>Date</th><th class="l">Transaction</th><th>Units</th><th>NAV</th><th>Amount</th><th>Gain / loss</th><th>CGT</th><th>Unit balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   if (!keepScroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+const r3IsStockName = n => /STOCK|EQUITY/i.test(n || '') && !/LIVESTOCK/i.test(n || '');
+// One-time repair: a fund named "Stock" or "Equity" that was set to another type by mistake goes back to Stock
+async function r3RepairStockTypes() {
+  if (!db) return; let n = 0;
+  for (const [id, m] of Object.entries(R3.meta || {})) {
+    if (m && m.type && m.type !== 'Stock' && r3IsStockName(m.name) && !m.confirmed) { await db.collection('fund_meta').doc(id).set({ type: 'Stock' }, { merge: true }); n++; }
+  }
+  if (n) showToast('✅ ' + n + ' stock fund' + (n > 1 ? 's' : '') + ' set back to type Stock', 4000);
+}
 async function r3SetType(key, name, type) {
-  if (!db) return; await db.collection('fund_meta').doc(r3DocId(key)).set({ key, name, type }, { merge: true }); showToast('Fund type saved');
+  if (!db) return;
+  if (r3IsStockName(name) && type !== 'Stock') {
+    if (!confirm(`${r3TitleCase(name)} looks like a stock fund. Set its type to "${type}" anyway?`)) { r3OpenFund(key, true); return; }
+    await db.collection('fund_meta').doc(r3DocId(key)).set({ key, name, type, confirmed: true }, { merge: true }); showToast('Fund type saved'); return;
+  } await db.collection('fund_meta').doc(r3DocId(key)).set({ key, name, type }, { merge: true }); showToast('Fund type saved');
 }
 
 // ---------------- statements: upload & review ----------------
