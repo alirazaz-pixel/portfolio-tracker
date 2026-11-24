@@ -2541,19 +2541,21 @@ const LEDGER = (() => {
     const pools = {}, waiting = {}; let dayOut = {}, dayIn = {}, curDate = null;
     const daysBetween = (a, b) => Math.abs(new Date(a) - new Date(b)) / 864e5;
     const endOfDay = () => {
-      Object.entries(dayOut).forEach(([amc, outs]) => outs.forEach(s => {
-        const net = s.gross - (s.cgt || 0); if (net <= 0) return;
-        (pools[amc] = pools[amc] || []).push({ date: curDate, net, carried: s.gain + (s.carriedSold || 0) - (s.cgt || 0) });
-      }));
+      // all conversions out of one AMC on one day form ONE pool, so every rupee that moved that day carries the same share of profit
+      Object.entries(dayOut).forEach(([amc, outs]) => {
+        let net = 0, carried = 0; outs.forEach(s => { const n = s.gross - (s.cgt || 0); if (n <= 0) return; net += n; carried += s.gain + (s.carriedSold || 0) - (s.cgt || 0); });
+        if (net > 0) (pools[amc] = pools[amc] || []).push({ date: curDate, net, carried });
+      });
       Object.entries(dayIn).forEach(([amc, lots]) => lots.forEach(l => (waiting[amc] = waiting[amc] || []).push({ lot: l, date: curDate, left: l.inAmount })));
       Object.keys(waiting).forEach(amc => {
-        for (const wt of waiting[amc]) {
-          for (const p of (pools[amc] || [])) {
-            if (wt.left <= 0.5) break; if (p.net <= 0.5 || daysBetween(p.date, wt.date) > 7) continue;
-            const t = Math.min(wt.left, p.net), c = p.carried * t / p.net, l = wt.lot;
+        for (const p of (pools[amc] || [])) {
+          // ins waiting for this pool (within 7 days); if they need more than the pool has, each gets a proportional part
+          const ws = waiting[amc].filter(wt => wt.left > 0.5 && daysBetween(p.date, wt.date) <= 7); if (!ws.length || p.net <= 0.5) continue;
+          const need = ws.reduce((t, wt) => t + wt.left, 0), use = Math.min(need, p.net), rate = p.carried / p.net;
+          ws.forEach(wt => { const t = use * wt.left / need, c = rate * t, l = wt.lot;
             if (l.units > 1e-7) { l.carried += c; funds[l.fk].carriedInTotal = (funds[l.fk].carriedInTotal || 0) + c; }
-            p.carried -= c; p.net -= t; wt.left -= t;
-          }
+            wt.left -= t; });
+          p.carried -= rate * use; p.net -= use;
         }
         waiting[amc] = waiting[amc].filter(wt => wt.left > 0.5 && daysBetween(wt.date, curDate) <= 7);
         pools[amc] = (pools[amc] || []).filter(p => p.net > 0.5 && daysBetween(p.date, curDate) <= 7);
