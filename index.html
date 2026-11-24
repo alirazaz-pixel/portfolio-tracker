@@ -2851,17 +2851,32 @@ function r3ToggleBreakdown() {
   document.getElementById('h-profit-btn').setAttribute('aria-expanded', R3.expanded);
 }
 const r3TypeTag = t => `<span class="r3-tag ${R3_TYPE_CLASS[t] || 'oth'}">${r3esc(t)}</span>`;
+// Shares of the portfolio: fund values from statements + Binance, UBL Bank and Cash from your latest record, so all shares add to 100%
+function r3Shares() {
+  const held = R3.funds.filter(f => f.units > 0.0001); const last = (typeof getLastRecord === 'function' && getLastRecord()) || {};
+  const amc = {}; held.forEach(f => { amc[f.amc] = (amc[f.amc] || 0) + f.value; });
+  const other = (last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0);
+  const total = Object.values(amc).reduce((a, b) => a + b, 0) + other;
+  return { amc, other, total };
+}
+const r3sh = (v, t) => t > 0 ? (v / t * 100).toFixed(1) + '%' : '—';
+function r3TypeMix(fs) {
+  const t = fs.reduce((a, f) => a + f.value, 0); if (!t) return '';
+  const by = {}; fs.forEach(f => { by[f.type] = (by[f.type] || 0) + f.value; });
+  return Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${r3sh(v, t)}`).join(' · ');
+}
 function r3FundRows(list, clickable) {
+  const SH = r3Shares();
   return list.map(f => `<tr class="fund" ${clickable ? `onclick="r3OpenFund('${r3esc(f.key)}')"` : ''}>
     <td class="l" style="padding-left:20px">${r3esc(r3TitleCase(f.name))}</td><td class="l">${r3TypeTag(f.type)}</td>
     <td>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</td>
     <td>${f.nav ? f.nav.toFixed(4) : '—'}<div class="r3-note">${f.navDate ? fmtDate(f.navDate).slice(0, 6) : ''}</div></td>
-    <td>${r3n(f.capitalHeld)}</td><td><b>${r3n(f.value)}</b></td>
+    <td>${r3n(f.capitalHeld)}</td><td><b>${r3n(f.value)}</b></td><td>${r3sh(f.value, SH.amc[f.amc])}</td><td><b>${r3sh(f.value, SH.total)}</b></td>
     <td class="${r3cls(f.unrealized)}">${r3s(f.unrealized)}</td><td class="${r3cls(f.carriedHeld)}">${Math.abs(f.carriedHeld) >= 1 ? r3s(f.carriedHeld) : '—'}</td>
     <td class="${r3cls(f.profitInFund)}"><b>${r3s(f.profitInFund)}</b></td><td class="${r3cls(f.profitInFund)}">${r3pct(f.capitalHeld > 0 ? f.profitInFund / f.capitalHeld : null)}</td>
     <td>${f.xirr == null ? '—' : r3pct(f.xirr)}</td><td>${f.days}</td><td class="dn">${r3n(f.cgtIfRedeemed)}</td></tr>`).join('');
 }
-const R3_HEAD = `<thead><tr><th>Fund</th><th class="l">Type</th><th>Units</th><th>Avg NAV</th><th>Latest NAV</th><th title="Cost of units held, minus profit carried in">Your capital</th><th>Value</th><th title="Gain on units since bought or converted in (CGT still due)">Gain since bought</th><th title="After-tax profit brought in by conversions (no more CGT)">Profit carried in</th><th>Total profit</th><th>Return</th><th>Annualised</th><th>Days</th><th>CGT if redeemed</th></tr></thead>`;
+const R3_HEAD = `<thead><tr><th>Fund</th><th class="l">Type</th><th>Units</th><th>Avg NAV</th><th>Latest NAV</th><th title="Cost of units held, minus profit carried in">Your capital</th><th>Value</th><th title="Share of this AMC's total">% of AMC</th><th title="Share of your whole portfolio (all AMCs + Binance, UBL Bank, Cash)">% of portfolio</th><th title="Gain on units since bought or converted in (CGT still due)">Gain since bought</th><th title="After-tax profit brought in by conversions (no more CGT)">Profit carried in</th><th>Total profit</th><th>Return</th><th>Annualised</th><th>Days</th><th>CGT if redeemed</th></tr></thead>`;
 const R3_FUNDS_NOTE = `<p class="r3-note" style="margin-top:6px">Your capital = what you paid for the units held, minus profit carried in. Gain since bought = growth since the units arrived (CGT is due on it). Profit carried in = profit already taxed when you converted from another fund — it moved here with the money and carries no further CGT. Total profit = both. These are since your statements start (1 Jul 2025), so they can differ from the Dashboard's profit, which counts from 4 May 2026.</p>`;
 function r3RenderBreakdown(last) {
   const t = document.getElementById('r3-breakdown-table'); if (!t) return;
@@ -2872,9 +2887,9 @@ function r3RenderBreakdown(last) {
     const fs = held.filter(f => f.amc === amc).sort((a, b) => b.value - a.value); if (!fs.length) return;
     const v = fs.reduce((s, f) => s + f.value, 0), pl = fs.reduce((s, f) => s + f.unrealized, 0), cg = fs.reduce((s, f) => s + f.cgtIfRedeemed, 0), co = fs.reduce((s, f) => s + f.capitalHeld, 0);
     const ca = fs.reduce((s, f) => s + f.carriedHeld, 0), tp = pl + ca;
-    html += `<tr class="amc"><td class="l" colspan="5">${amc} Funds <span class="r3-note" style="font-weight:400">· your records: ${r3n(last[R3_FIELD[amc]])}</span></td><td>${r3n(co)}</td><td>${r3n(v)}</td><td class="${r3cls(pl)}">${r3s(pl)}</td><td class="${r3cls(ca)}">${r3s(ca)}</td><td class="${r3cls(tp)}"><b>${r3s(tp)}</b></td><td>${r3pct(co ? tp / co : null)}</td><td></td><td></td><td class="dn">${r3n(cg)}</td></tr>` + r3FundRows(fs, true);
+    html += `<tr class="amc"><td class="l" colspan="5">${amc} Funds <span class="r3-note" style="font-weight:400">· your records: ${r3n(last[R3_FIELD[amc]])}</span></td><td>${r3n(co)}</td><td>${r3n(v)}</td><td>100%</td><td><b>${r3sh(v, r3Shares().total)}</b></td><td class="${r3cls(pl)}">${r3s(pl)}</td><td class="${r3cls(ca)}">${r3s(ca)}</td><td class="${r3cls(tp)}"><b>${r3s(tp)}</b></td><td>${r3pct(co ? tp / co : null)}</td><td></td><td></td><td class="dn">${r3n(cg)}</td></tr>` + r3FundRows(fs, true);
   });
-  html += `<tr class="amc"><td class="l" colspan="6">Binance · UBL Bank · Cash <span class="r3-note" style="font-weight:400">(from your records, no fund statement)</span></td><td>${r3n((last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0))}</td><td colspan="7"></td></tr></tbody>`;
+  html += `<tr class="amc"><td class="l" colspan="6">Binance · UBL Bank · Cash <span class="r3-note" style="font-weight:400">(from your records, no fund statement)</span></td><td>${r3n((last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0))}</td><td></td><td><b>${r3sh(r3Shares().other, r3Shares().total)}</b></td><td colspan="7"></td></tr></tbody>`;
   t.innerHTML = html; const nt = document.getElementById('r3-breakdown-note'); if (nt) nt.innerHTML = R3_FUNDS_NOTE;
 }
 
@@ -3053,9 +3068,15 @@ function r3RenderFunds() {
   ['HBL', 'UBL', 'MCB'].forEach(amc => {
     const all = R3.funds.filter(f => f.amc === amc); if (!all.length) return;
     const held = all.filter(f => f.units > 0.0001).sort((a, b) => b.value - a.value), closed = all.filter(f => f.units <= 0.0001);
-    html += `<h3 style="font-size:15px;margin:14px 0 8px">${amc} Funds</h3><div class="table-wrap"><table class="r3-table">${R3_HEAD}<tbody>${r3FundRows(held, true)}</tbody></table></div>`;
+    const SH = r3Shares(), av = held.reduce((a, f) => a + f.value, 0);
+    html += `<h3 style="font-size:15px;margin:14px 0 2px">${amc} Funds</h3><div class="r3-note" style="margin-bottom:8px">${r3n(av)} · <b>${r3sh(av, SH.total)} of your portfolio</b>${held.length ? ' · ' + r3TypeMix(held) : ''}</div><div class="table-wrap"><table class="r3-table">${R3_HEAD}<tbody>${r3FundRows(held, true)}</tbody></table></div>`;
     if (closed.length) html += `<details style="margin:8px 0 4px"><summary class="r3-note" style="cursor:pointer">Closed funds (${closed.length}) — realised gains and CGT</summary><div class="table-wrap"><table class="r3-table" style="min-width:600px"><thead><tr><th>Fund</th><th class="l">Type</th><th>Realised gain</th><th>CGT paid</th><th>Sales</th></tr></thead><tbody>${closed.map(f => `<tr class="fund" onclick="r3OpenFund('${r3esc(f.key)}')"><td class="l">${r3esc(r3TitleCase(f.name))}</td><td class="l">${r3TypeTag(f.type)}</td><td class="${r3cls(f.realized)}">${r3s(f.realized)}</td><td class="dn">${r3n(f.cgtPaid)}</td><td>${f.sells.length}</td></tr>`).join('')}</tbody></table></div></details>`;
   });
+  { const SH = r3Shares(); const all = R3.funds.filter(f => f.units > 0.0001);
+    const mix = ['HBL', 'UBL', 'MCB'].filter(a => SH.amc[a]).map(a => `${a} ${r3sh(SH.amc[a], SH.total)}`).concat(SH.other ? [`Binance · UBL Bank · Cash ${r3sh(SH.other, SH.total)}`] : []).join(' · ');
+    const byType = {}; all.forEach(f => { byType[f.type] = (byType[f.type] || 0) + f.value; });
+    const tmix = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${r3sh(v, SH.total)}`).join(' · ');
+    html = `<div class="r3-kv" style="grid-template-columns:1fr"><div>Your portfolio ${r3n(SH.total)} — by AMC<b style="font-size:13px">${mix}</b><span class="r3-note" style="display:block;margin-top:4px">By type: ${tmix}${SH.other ? ' · Binance, UBL Bank, Cash ' + r3sh(SH.other, SH.total) : ''}</span></div></div>` + html; }
   el.innerHTML = html + R3_FUNDS_NOTE;
   if (R3.detailKey) r3OpenFund(R3.detailKey, true);
 }
