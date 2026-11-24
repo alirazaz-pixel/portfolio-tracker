@@ -2647,9 +2647,8 @@ const LEDGER = (() => {
 
   // Smart plan: only funds in profit, never more than a fund's profit; lowest CGT per rupee first
   function plan(funds, want, method) {
-    const pin = f => Math.min(f.value, (f.unrealized || 0) + Math.max(0, f.carriedHeld || 0));
-    const cands = funds.filter(f => f.units > 0.0001 && f.type !== 'Stock' && pin(f) > 1 || (f.units > 0.0001 && f.unrealized > 1)).map(f => {
-      const cap = Math.max(f.unrealized > 1 ? f.unrealized : 0, pin(f)); const full = redeemCost(f, cap); return { f, cap, rate: full.cgt / cap };
+    const cands = funds.filter(f => f.units > 0.0001 && f.unrealized > 1).map(f => {
+      const full = redeemCost(f, f.unrealized); return { f, cap: f.unrealized, rate: full.cgt / f.unrealized };
     });
     let rows = [];
     if (method === 'prop') {
@@ -2676,7 +2675,7 @@ const LEDGER = (() => {
         else rows.push({ c: { f, cap: Math.max(0, f.unrealized), rate: 0 }, amt: a, topUp: a });
       }
     }
-    rows = rows.map(({ c, amt, topUp }) => { const r = redeemCost(c.f, amt); if (!topUp && c.f.carriedHeld > 0 && amt > Math.max(0, c.f.unrealized)) topUp = Math.min(amt - Math.max(0, c.f.unrealized), c.f.carriedHeld); return { key: c.f.key, amc: c.f.amc, name: c.f.name, type: c.f.type, profit: c.cap, amount: Math.round(amt), cgt: Math.round(r.cgt), net: Math.round(amt - r.cgt), topUp: Math.round(topUp || 0) }; });
+    rows = rows.map(({ c, amt, topUp }) => { const r = redeemCost(c.f, amt); return { key: c.f.key, amc: c.f.amc, name: c.f.name, type: c.f.type, profit: c.cap, amount: Math.round(amt), cgt: Math.round(r.cgt), net: Math.round(amt - r.cgt), topUp: Math.round(topUp || 0) }; });
     const avail = cands.reduce((s, c) => s + c.cap, 0);
     return { rows, total: rows.reduce((s, r) => s + r.amount, 0), cgt: rows.reduce((s, r) => s + r.cgt, 0), net: rows.reduce((s, r) => s + r.net, 0), available: avail };
   }
@@ -2872,13 +2871,12 @@ function r3FundRows(list, clickable) {
     <td class="l" style="padding-left:20px">${r3esc(r3TitleCase(f.name))}</td><td class="l">${r3TypeTag(f.type)}</td>
     <td>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</td>
     <td>${f.nav ? f.nav.toFixed(4) : '—'}<div class="r3-note">${f.navDate ? fmtDate(f.navDate).slice(0, 6) : ''}</div></td>
-    <td>${r3n(f.capitalHeld)}</td><td><b>${r3n(f.value)}</b></td><td>${r3sh(f.value, SH.amc[f.amc])}</td><td><b>${r3sh(f.value, SH.total)}</b></td>
-    <td class="${r3cls(f.unrealized)}">${r3s(f.unrealized)}</td><td class="${r3cls(f.carriedHeld)}">${Math.abs(f.carriedHeld) >= 1 ? r3s(f.carriedHeld) : '—'}</td>
-    <td class="${r3cls(f.profitInFund)}"><b>${r3s(f.profitInFund)}</b></td><td class="${r3cls(f.profitInFund)}">${r3pct(f.capitalHeld > 0 ? f.profitInFund / f.capitalHeld : null)}</td>
+    <td>${r3n(f.costHeld)}</td><td><b>${r3n(f.value)}</b></td><td>${r3sh(f.value, SH.amc[f.amc])}</td><td><b>${r3sh(f.value, SH.total)}</b></td>
+    <td class="${r3cls(f.unrealized)}"><b>${r3s(f.unrealized)}</b></td><td class="${r3cls(f.unrealized)}">${r3pct(f.unrealizedPct)}</td>
     <td>${f.xirr == null ? '—' : r3pct(f.xirr)}</td><td>${f.days}</td><td class="dn">${r3n(f.cgtIfRedeemed)}</td></tr>`).join('');
 }
-const R3_HEAD = `<thead><tr><th>Fund</th><th class="l">Type</th><th>Units</th><th>Avg NAV</th><th>Latest NAV</th><th title="Cost of units held, minus profit carried in">Your capital</th><th>Value</th><th title="Share of this AMC's total">% of AMC</th><th title="Share of your whole portfolio (all AMCs + Binance, UBL Bank, Cash)">% of portfolio</th><th title="Gain on units since bought or converted in (CGT still due)">Gain since bought</th><th title="After-tax profit brought in by conversions (no more CGT)">Profit carried in</th><th>Total profit</th><th>Return</th><th>Annualised</th><th>Days</th><th>CGT if redeemed</th></tr></thead>`;
-const R3_FUNDS_NOTE = `<p class="r3-note" style="margin-top:6px">Your capital = what you paid for the units held, minus profit carried in. Gain since bought = growth since the units arrived (CGT is due on it). Profit carried in = profit already taxed when you converted from another fund — it moved here with the money and carries no further CGT. Total profit = both. These are since your statements start (1 Jul 2025), so they can differ from the Dashboard's profit, which counts from 4 May 2026.</p>`;
+const R3_HEAD = `<thead><tr><th>Fund</th><th class="l">Type</th><th>Units</th><th>Avg NAV</th><th>Latest NAV</th><th title="What the units you hold cost, as the AMC counts it (taxed profit reinvested on a conversion becomes cost)">Cost</th><th>Value</th><th title="Share of this AMC's total">% of AMC</th><th title="Share of your whole portfolio (all AMCs + Binance, UBL Bank, Cash)">% of portfolio</th><th title="Gain on the units since they were bought or converted in (CGT is due on this)">Profit / loss</th><th>Return</th><th>Annualised</th><th>Days</th><th>CGT if redeemed</th></tr></thead>`;
+const R3_FUNDS_NOTE = `<p class="r3-note" style="margin-top:6px">AMC view, matching your statements: Cost = what the units you hold cost (when a conversion is taxed, the money that moves becomes the new cost). Profit / loss = gain since the units were bought or converted in — CGT is due on this when you redeem. How much profit you can withdraw is shown on the Dashboard (Profit available to withdraw).</p>`;
 function r3RenderBreakdown(last) {
   const t = document.getElementById('r3-breakdown-table'); if (!t) return;
   const held = r3Held();
@@ -2886,11 +2884,10 @@ function r3RenderBreakdown(last) {
   let html = R3_HEAD + '<tbody>';
   ['HBL', 'UBL', 'MCB'].forEach(amc => {
     const fs = held.filter(f => f.amc === amc).sort((a, b) => b.value - a.value); if (!fs.length) return;
-    const v = fs.reduce((s, f) => s + f.value, 0), pl = fs.reduce((s, f) => s + f.unrealized, 0), cg = fs.reduce((s, f) => s + f.cgtIfRedeemed, 0), co = fs.reduce((s, f) => s + f.capitalHeld, 0);
-    const ca = fs.reduce((s, f) => s + f.carriedHeld, 0), tp = pl + ca;
-    html += `<tr class="amc"><td class="l" colspan="5">${amc} Funds <span class="r3-note" style="font-weight:400">· your records: ${r3n(last[R3_FIELD[amc]])}</span></td><td>${r3n(co)}</td><td>${r3n(v)}</td><td>100%</td><td><b>${r3sh(v, r3Shares().total)}</b></td><td class="${r3cls(pl)}">${r3s(pl)}</td><td class="${r3cls(ca)}">${r3s(ca)}</td><td class="${r3cls(tp)}"><b>${r3s(tp)}</b></td><td>${r3pct(co ? tp / co : null)}</td><td></td><td></td><td class="dn">${r3n(cg)}</td></tr>` + r3FundRows(fs, true);
+    const v = fs.reduce((s, f) => s + f.value, 0), pl = fs.reduce((s, f) => s + f.unrealized, 0), cg = fs.reduce((s, f) => s + f.cgtIfRedeemed, 0), co = fs.reduce((s, f) => s + f.costHeld, 0);
+    html += `<tr class="amc"><td class="l" colspan="5">${amc} Funds <span class="r3-note" style="font-weight:400">· your records: ${r3n(last[R3_FIELD[amc]])}</span></td><td>${r3n(co)}</td><td>${r3n(v)}</td><td>100%</td><td><b>${r3sh(v, r3Shares().total)}</b></td><td class="${r3cls(pl)}"><b>${r3s(pl)}</b></td><td>${r3pct(co ? pl / co : null)}</td><td></td><td></td><td class="dn">${r3n(cg)}</td></tr>` + r3FundRows(fs, true);
   });
-  html += `<tr class="amc"><td class="l" colspan="6">Binance · UBL Bank · Cash <span class="r3-note" style="font-weight:400">(from your records, no fund statement)</span></td><td>${r3n((last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0))}</td><td></td><td><b>${r3sh(r3Shares().other, r3Shares().total)}</b></td><td colspan="7"></td></tr></tbody>`;
+  html += `<tr class="amc"><td class="l" colspan="6">Binance · UBL Bank · Cash <span class="r3-note" style="font-weight:400">(from your records, no fund statement)</span></td><td>${r3n((last.binanceFund || 0) + (last.ublBank || 0) + (last.cash || 0))}</td><td></td><td><b>${r3sh(r3Shares().other, r3Shares().total)}</b></td><td colspan="5"></td></tr></tbody>`;
   t.innerHTML = html; const nt = document.getElementById('r3-breakdown-note'); if (nt) nt.innerHTML = R3_FUNDS_NOTE;
 }
 
@@ -2967,19 +2964,27 @@ function r3RenderPlanner(cumProfit) {
   const losses = held.filter(f => f.unrealized < -1).reduce((s, f) => s + f.unrealized, 0);
   const rows = [...p.rows].sort((a, b) => b.amount - a.amount);
   el.innerHTML = `<div class="r3-head"><div><div class="card-title" style="margin:0">Redeem profit planner</div>
-      <div class="r3-note" style="margin-top:4px">Available to withdraw (your records): <b>${r3n(avail)}</b> · profit sitting in funds (statements): <b class="up">${r3n(p.available)}</b> · losses in funds: <b class="dn">${r3s(losses)}</b></div></div>
+      <div class="r3-note" style="margin-top:4px">Available to withdraw (your records): <b>${r3n(avail)}</b> · gains in funds since bought (CGT due on these): <b class="up">${r3n(p.available)}</b> · losses in funds: <b class="dn">${r3s(losses)}</b></div></div>
       <div class="r3-seg">${[['smart', 'Smart (lowest CGT)'], ['prop', 'Proportional']].map(([k, l]) => `<button type="button" class="${R3.method === k ? 'on' : ''}" onclick="R3.method='${k}';r3RenderPlanner(${cumProfit})">${l}</button>`).join('')}</div></div>
-    <div class="r3-amts"><span class="r3-note">I want to redeem:</span>${[10000, 20000, avail].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map(v => `<button type="button" class="${v === want ? 'on' : ''}" onclick="R3.want=${v};r3RenderPlanner(${cumProfit})">${v === avail ? 'All available · ' : ''}${r3n(v)}</button>`).join('')}
-      <input type="number" min="0" step="1000" placeholder="Other amount" aria-label="Other amount" onchange="R3.want=Math.max(0,+this.value||0);r3RenderPlanner(${cumProfit})"></div>
+    <div class="r3-amts"><span class="r3-note">I want to redeem:</span>${[10000, 20000, avail].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map(v => `<button type="button" class="${v === want ? 'on' : ''}" onclick="R3.want=${v};R3.wantTyped='';r3RenderPlanner(${cumProfit})">${v === avail ? 'All available · ' : ''}${r3n(v)}</button>`).join('')}
+      <input id="r3-want-input" type="text" inputmode="numeric" placeholder="Type any amount" aria-label="Amount to redeem" value="${R3.wantTyped || ''}" oninput="r3PlanTyped(this, ${cumProfit})"></div>
     ${R3.want > avail ? `<p class="r3-note dn" style="margin-bottom:8px">Capped at ${r3n(avail)} — more would come from capital.</p>` : ''}
-    <div class="table-wrap"><table class="r3-table" style="min-width:640px"><thead><tr><th>Redeem from</th><th class="l">Type</th><th>Profit in fund</th><th>Suggested amount</th><th>Est. CGT</th><th>You receive</th></tr></thead><tbody>
-      ${rows.map(r => `<tr class="${r.amount ? '' : 'muted'}"><td class="l">${r3esc(r3Label(r.amc, r.name))}</td><td class="l">${r3TypeTag(r.type)}</td><td class="up">${r3n(r.profit)}</td><td><b>${r.amount ? r3n(r.amount) : '—'}</b>${r.topUp ? `<div class="r3-note">incl. ${r3n(r.topUp)} already-taxed profit</div>` : ''}</td><td class="dn">${r.amount ? r3n(r.cgt) : '—'}</td><td>${r.amount ? r3n(r.net) : '—'}</td></tr>`).join('')}
+    <div class="table-wrap"><table class="r3-table" style="min-width:640px"><thead><tr><th>Redeem from</th><th class="l">Type</th><th>Gain in fund</th><th>Suggested amount</th><th>Est. CGT</th><th>You receive</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.amount ? '' : 'muted'}"><td class="l">${r3esc(r3Label(r.amc, r.name))}</td><td class="l">${r3TypeTag(r.type)}</td><td class="up">${r3n(r.profit)}</td><td><b>${r.amount ? r3n(r.amount) : '—'}</b>${r.topUp ? `<div class="r3-note">incl. ${r3n(r.topUp)} beyond this fund's gain</div>` : ''}</td><td class="dn">${r.amount ? r3n(r.cgt) : '—'}</td><td>${r.amount ? r3n(r.net) : '—'}</td></tr>`).join('')}
       <tr class="amc"><td class="l" colspan="3">Total</td><td>${r3n(p.total)}</td><td class="dn">${r3n(p.cgt)}</td><td class="up">${r3n(p.net)}</td></tr></tbody></table></div>
-    <div class="r3-head" style="margin-top:12px;margin-bottom:0"><div class="r3-note" style="max-width:640px">${R3.method === 'smart' ? 'Smart takes profit first from funds where the units sold carry the least taxable gain, so CGT now is lowest.' : 'Proportional takes from each fund in proportion to the profit it holds.'} If funds show less gain than your profit (because conversions already settled the CGT), the rest comes from money market and income funds, where the units are at cost and carry little or no CGT. Funds in loss are skipped. Your capital stays untouched.</div>
+    <div class="r3-head" style="margin-top:12px;margin-bottom:0"><div class="r3-note" style="max-width:640px">${R3.method === 'smart' ? 'Smart takes profit first from funds where the units sold carry the least taxable gain, so CGT now is lowest.' : 'Proportional takes from each fund in proportion to the profit it holds.'} If the funds' gains are less than the amount (because conversions already settled the CGT on earlier profit), the rest comes from money market and income funds; CGT shown is the AMC's FIFO estimate on the units sold. Funds in loss are skipped. Your capital stays untouched.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="r3-note" for="r3-reinvest">Reinvest into</label>
         <select id="r3-reinvest" onchange="R3.reinvest=this.value" style="padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">
           ${[['', 'Nothing (take cash)'], ['binanceFund', 'Binance'], ['ublBank', 'UBL Bank'], ['cash', 'Cash']].map(([v, l]) => `<option value="${v}" ${R3.reinvest === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button type="button" class="r3-btn primary" ${p.total > 0 ? '' : 'disabled'} onclick='r3RecordPlan(${JSON.stringify(rows.filter(r => r.amount > 0).map(r => ({ amc: r.amc, name: r3TitleCase(r.name), amount: r.amount, net: r.net })))})'>Record these redemptions</button></div></div>`;
+}
+// live typing in the amount box: the plan updates as you type (no Enter needed), keeping your cursor in the box
+let r3PlanTimer = null;
+function r3PlanTyped(el, cumProfit) {
+  const raw = el.value.replace(/[^\d]/g, ''); R3.wantTyped = raw ? (+raw).toLocaleString('en-PK') : '';
+  clearTimeout(r3PlanTimer);
+  r3PlanTimer = setTimeout(() => { R3.want = raw ? +raw : 0; r3RenderPlanner(cumProfit);
+    const n = document.getElementById('r3-want-input'); if (n) { n.focus(); const L = n.value.length; try { n.setSelectionRange(L, L); } catch (e) {} } }, 250);
 }
 let r3AfterSave = null;
 function r3RecordPlan(rows) {
@@ -3016,18 +3021,17 @@ function r3RenderStock() {
   const held = stock.filter(f => f.units > 0.0001).sort((a, b) => b.value - a.value), closed = stock.filter(f => f.units <= 0.0001 && (f.sells || []).length);
   const sum = (arr, k) => arr.reduce((s, f) => s + (f[k] || 0), 0);
   const SH = r3Shares();
-  const cost = sum(held, 'costHeld'), cap = sum(held, 'capitalHeld'), car = sum(held, 'carriedHeld'), val = sum(held, 'value'), unr = val - cost, tot = unr + car;
+  const cost = sum(held, 'costHeld'), val = sum(held, 'value'), unr = val - cost;
   const cgt = sum(stock, 'cgtPaid'), lifePL = sum(stock, 'lifePL'), bought = sum(stock, 'putIn'), sold = sum(stock, 'totalOut'), avgInv = sum(stock, 'avgInvested');
   const pct = (a, b) => b ? (a / b * 100).toFixed(2) + '%' : '—';
   const navf = v => v == null ? '—' : (+v).toLocaleString('en-PK', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
   const unitsf = v => (+v).toLocaleString('en-PK', { maximumFractionDigits: 4 });
   const src = s => ({ investment: 'Investment', conversion: 'Conversion in', dividend: 'Dividend re-invest', cgtRefund: 'CGT refund' }[s] || (s ? r3TitleCase(s) : 'Opening balance'));
-  let h = `<div class="r3-note" style="margin:2px 0 -4px;font-weight:600">Now — ${held.length} stock fund${held.length === 1 ? '' : 's'} held</div><div class="r3-kv r3-kv5">
-    <div>Total cost of units held<b>${r3n(cost)}</b></div>
-    <div>Your capital in stocks<b>${r3n(cap)}</b><span class="r3-note">cost minus profit carried in</span></div>
+  let h = `<div class="r3-note" style="margin:2px 0 -4px;font-weight:600">Now — ${held.length} stock fund${held.length === 1 ? '' : 's'} held</div><div class="r3-kv">
+    <div>Total invested in stocks (cost)<b>${r3n(cost)}</b></div>
     <div>Current value<b>${r3n(val)}</b><span class="r3-note" style="font-weight:600">${r3sh(val, SH.total)} of your portfolio</span></div>
-    <div>Gain / loss since bought<b class="${r3cls(unr)}">${r3s(unr)}</b><span class="${r3cls(unr)}">${pct(unr, cost)}</span></div>
-    <div>Total profit / loss in stocks<b class="${r3cls(tot)}">${r3s(tot)}</b><span class="${r3cls(tot)}">${pct(tot, cap)} of your capital · incl. ${r3s(car)} carried in</span></div></div>
+    <div>Profit / loss<b class="${r3cls(unr)}">${r3s(unr)}</b><span class="${r3cls(unr)}">${pct(unr, cost)}</span></div>
+    <div>CGT if redeemed today<b class="dn">${r3n(held.reduce((t, f) => t + f.cgtIfRedeemed, 0))}</b></div></div>
     <div class="r3-note" style="margin:8px 0 -4px;font-weight:600">Lifetime since 1 Jul 2025 — all stock funds, including closed</div><div class="r3-kv r3-kv5">
     <div>Total bought<b>${r3n(bought)}</b><span class="r3-note">same money counted each time it went in</span></div>
     <div>Total sold or converted out<b>${r3n(sold)}</b></div>
@@ -3039,25 +3043,24 @@ function r3RenderStock() {
     const be = f.units ? f.costHeld / f.units : 0; const pl = f.value - f.costHeld; const need = f.nav ? (be / f.nav - 1) * 100 : 0;
     const lots = (f.lots || []).filter(l => l.units > 0.0001);
     h += `<div class="r3-amc-block" style="margin-top:12px"><div class="r3-head" style="margin:0"><b>${r3esc(r3TitleCase(f.name))} <span class="r3-note">· ${f.amc}</span></b>
-        <span class="r3-note" style="font-size:13px"><b style="color:var(--text)">${r3sh(f.value, SH.total)} of your portfolio</b> · ${r3sh(f.value, SH.amc[f.amc])} of ${f.amc} · fund gain / loss <b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)}</b>${Math.abs(f.carriedHeld) >= 1 ? ` · incl. profit carried in <b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b>` : ''}</span></div>
+        <span class="r3-note" style="font-size:13px"><b style="color:var(--text)">${r3sh(f.value, SH.total)} of your portfolio</b> · ${r3sh(f.value, SH.amc[f.amc])} of ${f.amc} · profit / loss <b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)} (${pct(f.unrealized, f.costHeld)})</b></span></div>
       <div class="r3-kv r3-kv6">
-        <div>Total cost<b>${r3n(f.costHeld)}</b><span class="r3-note">your capital ${r3n(f.capitalHeld)}${Math.abs(f.carriedHeld) >= 1 ? ' + carried ' + r3n(f.carriedHeld) : ''}</span></div><div>Units<b>${unitsf(f.units)}</b></div>
+        <div>Amount invested (cost)<b>${r3n(f.costHeld)}</b></div><div>Units<b>${unitsf(f.units)}</b></div>
         <div>Average NAV (break-even)<b>${navf(be)}</b></div><div>Current NAV<b>${navf(f.nav)}</b><span class="r3-note">${f.navDate ? fmtDate(f.navDate) : ''}</span></div>
         <div>Current value<b>${r3n(f.value)}</b></div>
         <div>${pl < 0 ? 'NAV rise needed to break even' : 'Above break-even by'}<b class="${pl < 0 ? 'dn' : 'up'}">${Math.abs(need).toFixed(2)}%</b></div></div>
-      <div class="r3-note" style="margin:-2px 0 8px">Total profit / loss in fund: <b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b> (${pct(f.profitInFund, f.capitalHeld)} of your capital)${Math.abs(f.carriedHeld) >= 1 ? ` = gain since bought ${r3s(f.unrealized)} + profit carried in ${r3s(f.carriedHeld)}` : ''} ·
-        Lifetime since 1 Jul 2025: bought ${r3n(f.putIn)}, sold ${r3n(f.totalOut)}, <b class="${r3cls(f.lifePL)}">${r3s(f.lifePL)}</b> before CGT, CGT ${r3n(f.cgtPaid)}, <b class="${r3cls(f.lifePLAfterCGT)}">${r3s(f.lifePLAfterCGT)}</b> after CGT</div>
-      <div class="table-wrap"><table class="r3-table" style="min-width:720px"><thead><tr><th class="l">Purchase date</th><th class="l">How</th><th>Amount invested</th><th>of which profit carried in</th><th>NAV</th><th>Units</th><th>Value now</th><th>Gain / loss</th><th>%</th></tr></thead><tbody>
+      <div class="r3-note" style="margin:-2px 0 8px">Lifetime since 1 Jul 2025: bought ${r3n(f.putIn)}, sold ${r3n(f.totalOut)}, <b class="${r3cls(f.lifePL)}">${r3s(f.lifePL)}</b> before CGT, CGT ${r3n(f.cgtPaid)}, <b class="${r3cls(f.lifePLAfterCGT)}">${r3s(f.lifePLAfterCGT)}</b> after CGT</div>
+      <div class="table-wrap"><table class="r3-table" style="min-width:720px"><thead><tr><th class="l">Purchase date</th><th class="l">How</th><th>Amount invested</th><th>NAV</th><th>Units</th><th>Value now</th><th>Gain / loss</th><th>%</th></tr></thead><tbody>
       ${lots.map(l => { const lv = l.units * (f.nav || 0), lp = lv - l.cost;
-        return `<tr><td class="l">${fmtDate(l.date)}</td><td class="l">${src(l.opening ? '' : l.sub)}</td><td>${r3n(l.cost)}</td><td class="${r3cls(l.carried || 0)}">${Math.abs(l.carried || 0) >= 1 ? r3s(l.carried) : '—'}</td><td>${navf(l.cost / l.units)}</td><td>${unitsf(l.units)}</td><td>${r3n(lv)}</td><td class="${r3cls(lp)}">${r3s(Math.round(lp))}</td><td class="${r3cls(lp)}">${pct(lp, l.cost)}</td></tr>`; }).join('')}
-      <tr style="font-weight:700;background:var(--surface2)"><td class="l">Total</td><td></td><td>${r3n(f.costHeld)}</td><td>${Math.abs(f.carriedHeld) >= 1 ? r3s(f.carriedHeld) : '—'}</td><td>${navf(be)}</td><td>${unitsf(f.units)}</td><td>${r3n(f.value)}</td><td class="${r3cls(pl)}">${r3s(Math.round(pl))}</td><td class="${r3cls(pl)}">${pct(pl, f.costHeld)}</td></tr></tbody></table></div>
+        return `<tr><td class="l">${fmtDate(l.date)}</td><td class="l">${src(l.opening ? '' : l.sub)}</td><td>${r3n(l.cost)}</td><td>${navf(l.cost / l.units)}</td><td>${unitsf(l.units)}</td><td>${r3n(lv)}</td><td class="${r3cls(lp)}">${r3s(Math.round(lp))}</td><td class="${r3cls(lp)}">${pct(lp, l.cost)}</td></tr>`; }).join('')}
+      <tr style="font-weight:700;background:var(--surface2)"><td class="l">Total</td><td></td><td>${r3n(f.costHeld)}</td><td>${navf(be)}</td><td>${unitsf(f.units)}</td><td>${r3n(f.value)}</td><td class="${r3cls(pl)}">${r3s(Math.round(pl))}</td><td class="${r3cls(pl)}">${pct(pl, f.costHeld)}</td></tr></tbody></table></div>
       ${(f.sells || []).length ? `<details style="margin-top:6px"><summary class="r3-note" style="cursor:pointer">Sold or converted out (${f.sells.length}) — gain or loss on each</summary><div class="table-wrap"><table class="r3-table" style="min-width:720px"><thead><tr><th class="l">Date</th><th class="l">How</th><th>Units</th><th>NAV</th><th>Proceeds</th><th>Cost (FIFO)</th><th>Gain / loss</th><th>CGT</th></tr></thead><tbody>
         ${f.sells.map(x => `<tr><td class="l">${fmtDate(x.date)}</td><td class="l">${x.sub === 'conversion' ? 'Conversion out' : 'Redemption'}</td><td>${unitsf(x.units)}</td><td>${navf(x.nav)}</td><td>${r3n(x.gross)}</td><td>${r3n(x.cost)}</td><td class="${r3cls(x.gain)}">${r3s(Math.round(x.gain))} ${x.gain >= 0 ? '▲' : '▼'}</td><td class="dn">${x.cgt != null ? r3n(x.cgt) : (x.cgtEst ? '~' + r3n(x.cgtEst) : '0')}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
     </div>`;
   });
   if (closed.length) h += `<details style="margin-top:12px"><summary class="r3-note" style="cursor:pointer">Closed stock funds (${closed.length}) — realised gain or loss</summary><div class="table-wrap"><table class="r3-table" style="min-width:620px"><thead><tr><th class="l">Fund</th><th class="l">AMC</th><th>Sales</th><th>Realised gain / loss</th><th>CGT paid</th></tr></thead><tbody>
     ${closed.map(f => { const g = (f.sells || []).reduce((t, x) => t + (x.gain || 0), 0); return `<tr><td class="l">${r3esc(r3TitleCase(f.name))}</td><td class="l">${f.amc}</td><td>${f.sells.length}</td><td class="${r3cls(g)}">${r3s(Math.round(g))}</td><td class="dn">${r3n(f.cgtPaid)}</td></tr>`; }).join('')}</tbody></table></div></details>`;
-  h += `<p class="r3-note" style="margin-top:8px">Total cost = what you paid for the units you still hold (oldest units are sold first, as the AMC does for CGT). Your capital = total cost minus profit carried in from conversions (already taxed). Average NAV is your break-even: above it you are in profit. Conversions in count at the amount that arrived in the fund.</p>`;
+  h += `<p class="r3-note" style="margin-top:8px">Amount invested = what the units you still hold cost, as the AMC counts it (oldest units are sold first; money moved in by a conversion counts at the amount that arrived). Average NAV is your break-even: above it you are in profit.</p>`;
   el.innerHTML = h;
 }
 function r3RenderFunds() {
@@ -3099,13 +3102,14 @@ function r3OpenFund(key, keepScroll) {
   el.innerHTML = `<div class="r3-head"><div><div class="card-title" style="margin:0">${r3esc(r3Label(f.amc, f.name))}</div><div class="r3-note">${f.navDate ? 'Latest NAV ' + (f.nav || 0).toFixed(4) + ' on ' + fmtDate(f.navDate) : ''}</div></div>
       <div style="display:flex;gap:8px;align-items:center"><label class="r3-note" for="r3-type">Fund type</label><select id="r3-type" onchange="r3SetType('${r3esc(f.key)}','${r3esc(f.name)}',this.value)" style="padding:7px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)">${types.map(t => `<option ${t === f.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
       <button type="button" class="r3-btn" onclick="document.getElementById('r3-fund-detail').style.display='none';R3.detailKey=null">Close</button></div></div>
-    <div class="r3-kv"><div>Units held<b>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</b></div><div>Average NAV (break-even)<b>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</b></div><div>Value now<b>${r3n(f.value)}</b></div><div>Your capital in it<b>${r3n(f.capitalHeld)}</b><span class="r3-note">cost of units held ${r3n(f.costHeld)}</span></div>
-      <div>Gain since bought<b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)}</b><span class="r3-note">CGT still due on this</span></div><div>Profit carried in<b class="${r3cls(f.carriedHeld)}">${r3s(f.carriedHeld)}</b><span class="r3-note">already taxed, from conversions</span></div><div>Total profit in this fund<b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b><span class="${r3cls(f.profitInFund)}">${r3pct(f.capitalHeld > 0 ? f.profitInFund / f.capitalHeld : null)} of your capital</span></div><div>CGT if redeemed today<b class="dn">${r3n(f.cgtIfRedeemed)}</b></div></div>
+    <div class="r3-kv"><div>Units held<b>${f.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</b></div><div>Average NAV (break-even)<b>${f.avgCost ? f.avgCost.toFixed(4) : '—'}</b></div><div>Value now<b>${r3n(f.value)}</b></div><div>Cost of units held<b>${r3n(f.costHeld)}</b></div>
+      <div>Profit / loss on units held<b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)} · ${r3pct(f.unrealizedPct)}</b><span class="r3-note">CGT is due on this when redeemed</span></div><div>CGT if redeemed today<b class="dn">${r3n(f.cgtIfRedeemed)}</b></div><div>Realised gains since 1 Jul 2025<b class="${r3cls(f.realized)}">${r3s(f.realized)}</b></div><div>CGT paid<b class="dn">${r3n(f.cgtPaid)}</b></div></div>
+    ${f.carriedHeld >= 100 ? `<p class="r3-note" style="margin:2px 0 6px">For reference: about ${r3n(f.carriedHeld)} of this fund's cost is profit you earned earlier in other funds, already taxed when you converted. It is part of the cost now, so it is not taxed again.</p>` : ''}
     <h3 style="font-size:14px;margin:14px 0 6px">Lifetime since 1 Jul 2025</h3>
     <div class="r3-kv r3-kv6"><div>Total bought<b>${r3n(f.putIn)}</b><span class="r3-note">fresh ${r3n(f.freshIn)} · converted in ${r3n(f.convIn)}</span></div><div>Total sold or converted out<b>${r3n(f.totalOut)}</b></div><div>Average amount invested<b>${r3n(f.avgInvested)}</b><span class="r3-note">peak ${r3n(f.peakInvested)} · ${f.activeDays} days</span></div>
       <div>Profit / loss before CGT<b class="${r3cls(f.lifePL)}">${r3s(f.lifePL)}</b><span class="${r3cls(f.lifePL)}">${r3pct(f.lifePct)}</span></div><div>CGT paid<b class="dn">${r3n(f.cgtPaid)}</b></div><div>Profit / loss after CGT<b class="${r3cls(f.lifePLAfterCGT)}">${r3s(f.lifePLAfterCGT)}</b><span class="${r3cls(f.lifePLAfterCGT)}">${r3pct(f.lifePctAfterCGT)}${f.lifePctAfterCGT != null && f.activeDays >= 30 ? ' · ' + r3pct(f.lifePctAfterCGT * 365 / f.activeDays) + ' p.a.' : ''}</span></div></div>
     ${f.cgtPaid > Math.max(0, f.lifePL) && f.cgtPaid > 100 ? `<p class="r3-note dn" style="margin:4px 0 0">CGT paid is more than this fund's total gain: CGT is charged on each gain, and losses are not set off. Frequent switching in and out cost more tax than it earned.</p>` : ''}
-    ${f.lots.length ? `<h3 style="font-size:14px;margin:14px 0 6px">Units still held (oldest first — these are sold first)</h3><div class="table-wrap"><table class="r3-table" style="min-width:520px"><thead><tr><th>Bought</th><th>Units</th><th>Cost NAV</th><th>Cost</th><th>of which profit carried in</th><th>Value now</th><th>Gain since bought</th></tr></thead><tbody>${f.lots.map(l => { const v = l.units * (f.nav || 0); const c = l.cost || 0; return `<tr><td class="l">${fmtDate(l.date)}${l.opening ? ' (opening)' : ''}</td><td>${l.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${l.units ? (c / l.units).toFixed(4) : ''}</td><td>${r3n(c)}</td><td class="${r3cls(l.carried || 0)}">${Math.abs(l.carried || 0) >= 1 ? r3s(l.carried) : '—'}</td><td>${r3n(v)}</td><td class="${r3cls(v - c)}">${r3s(v - c)}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
+    ${f.lots.length ? `<h3 style="font-size:14px;margin:14px 0 6px">Units still held (oldest first — these are sold first)</h3><div class="table-wrap"><table class="r3-table" style="min-width:520px"><thead><tr><th>Bought</th><th>Units</th><th>Cost NAV</th><th>Cost</th><th>Value now</th><th>Profit / loss</th></tr></thead><tbody>${f.lots.map(l => { const v = l.units * (f.nav || 0); const c = l.cost || 0; return `<tr><td class="l">${fmtDate(l.date)}${l.opening ? ' (opening)' : ''}</td><td>${l.units.toLocaleString('en-PK', { maximumFractionDigits: 4 })}</td><td>${l.units ? (c / l.units).toFixed(4) : ''}</td><td>${r3n(c)}</td><td>${r3n(v)}</td><td class="${r3cls(v - c)}">${r3s(v - c)}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
     <h3 style="font-size:14px;margin:14px 0 6px">All transactions since 1 Jul 2025</h3><div class="table-wrap" style="max-height:420px;overflow:auto"><table class="r3-table" style="min-width:760px"><thead><tr><th>Date</th><th class="l">Transaction</th><th>Units</th><th>NAV</th><th>Amount</th><th>Gain / loss</th><th>CGT</th><th>Unit balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   if (!keepScroll) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
