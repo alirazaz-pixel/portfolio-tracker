@@ -3039,7 +3039,7 @@ function r3RenderStock() {
     const be = f.units ? f.costHeld / f.units : 0; const pl = f.value - f.costHeld; const need = f.nav ? (be / f.nav - 1) * 100 : 0;
     const lots = (f.lots || []).filter(l => l.units > 0.0001);
     h += `<div class="r3-amc-block" style="margin-top:12px"><div class="r3-head" style="margin:0"><b>${r3esc(r3TitleCase(f.name))} <span class="r3-note">· ${f.amc}</span></b>
-        <span class="r3-note" style="font-size:13px"><b style="color:var(--text)">${r3sh(f.value, SH.total)} of your portfolio</b> · ${r3sh(f.value, SH.amc[f.amc])} of ${f.amc} · total profit / loss <b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b></span></div>
+        <span class="r3-note" style="font-size:13px"><b style="color:var(--text)">${r3sh(f.value, SH.total)} of your portfolio</b> · ${r3sh(f.value, SH.amc[f.amc])} of ${f.amc} · fund gain / loss <b class="${r3cls(f.unrealized)}">${r3s(f.unrealized)}</b>${Math.abs(f.carriedHeld) >= 1 ? ` · incl. profit carried in <b class="${r3cls(f.profitInFund)}">${r3s(f.profitInFund)}</b>` : ''}</span></div>
       <div class="r3-kv r3-kv6">
         <div>Total cost<b>${r3n(f.costHeld)}</b><span class="r3-note">your capital ${r3n(f.capitalHeld)}${Math.abs(f.carriedHeld) >= 1 ? ' + carried ' + r3n(f.carriedHeld) : ''}</span></div><div>Units<b>${unitsf(f.units)}</b></div>
         <div>Average NAV (break-even)<b>${navf(be)}</b></div><div>Current NAV<b>${navf(f.nav)}</b><span class="r3-note">${f.navDate ? fmtDate(f.navDate) : ''}</span></div>
